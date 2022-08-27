@@ -1,0 +1,28 @@
+{
+  "taskDefinition": "stagingv2-taisei-pf-api-task",
+  "serviceName": "stagingv2-taisei-pf-api-service",
+  "cluster": "stagingv2-taisei-pf-api2",
+  "loadBalancers": [{
+      "targetGroupArn": "arn:aws:elasticloadbalancing:ap-northeast-1:067483480333:targetgroup/stagingv2-taisei-pf-api-alb-tg/fdf774d490c5f512",
+      "containerName": "nginx",
+      "containerPort": 80
+  }],
+  "desiredCount": 1,
+  "launchType": "FARGATE",
+  "schedulingStrategy": "REPLICA",
+  "deploymentController": {
+      "type": "CODE_DEPLOY"
+  },
+  "networkConfiguration": {
+      "awsvpcConfiguration": {
+          "subnets": [
+              "subnet-00b0e2fabee1ee834",
+              "subnet-01a4dfa48d1775685"
+          ],
+          "securityGroups": [
+              "sg-08c024520d725db49"
+          ],
+          "assignPublicIp": "DISABLED"
+      }
+  }
+}

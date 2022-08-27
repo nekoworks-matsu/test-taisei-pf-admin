@@ -1,0 +1,138 @@
+{
+  "ipcMode": null,
+  "executionRoleArn": "arn:aws:iam::067483480333:role/ecsTaskExecutionRole",
+  "family": "stagingv2-taisei-pf-api-task",
+  "containerDefinitions": [
+      {
+          "name": "nginx",
+          "image": "<IMAGE_NGINX_NAME>",
+          "essential": true,
+          "dependsOn": [
+              {
+                  "containerName": "api",
+                  "condition": "START"
+              }
+          ],
+          "portMappings": [
+              {
+                  "protocol": "tcp",
+                  "containerPort": 80
+              }
+          ],
+          "logConfiguration": {
+              "logDriver": "awslogs",
+              "options": {
+                  "awslogs-group": "/ecs/t-spider/api/nginx/",
+                  "awslogs-region": "ap-northeast-1",
+                  "awslogs-stream-prefix": "ecs"
+              }
+          }
+      },
+      {
+          "name": "api",
+          "image": "<IMAGE_API_NAME>",
+          "dnsSearchDomains": null,
+          "environmentFiles": null,
+          "logConfiguration": {
+              "logDriver": "awslogs",
+              "secretOptions": null,
+              "options": {
+                  "awslogs-group": "/ecs/t-spider/api/app/",
+                  "awslogs-region": "ap-northeast-1",
+                  "awslogs-stream-prefix": "ecs"
+              }
+          },
+          "entryPoint": null,
+          "portMappings": [
+              {
+                  "protocol": "tcp",
+                  "containerPort": 3000
+              }
+          ],
+          "command": null,
+          "linuxParameters": null,
+          "cpu": 0,
+          "environment": [
+              {
+                  "name": "DB_HOST",
+                  "value": "taisei-pf-staging-5-cluster.cluster-cfglog8pvjbo.ap-northeast-1.rds.amazonaws.com"
+              },
+              {
+                  "name": "DB_PORT",
+                  "value": "3306"
+              },
+              {
+                  "name": "DB_USER",
+                  "value": "taiseipf"
+              },
+              {
+                  "name": "DB_PASSWORD",
+                  "value": "taiseipfmira"
+              },
+              {
+                  "name": "DB_DATABASE",
+                  "value": "taiseipf_staging"
+              },
+              {
+                  "name": "PASSWORD_RESET_URL",
+                  "value": "https://staging-admin.t-spider.cloud/pwd_reset/"
+              },
+              {
+                  "name": "DISABLE_EXPLORER",
+                  "value": "true"
+              },
+              {
+                  "name": "TOKEN_SECRET",
+                  "value": "wosjhgow92p"
+              },
+              {
+                  "name": "S3_ACCESS_KEY",
+                  "value": "AKIA5CVLNIL47QOHWYNR"
+              },
+              {
+                  "name": "S3_SECRET_ACCESS_KEY",
+                  "value": "nmt0/hu4zL7qP2JiPDgeViYqClF2GU/bGmhn18vs"
+              },
+              {
+                  "name": "S3_REGION",
+                  "value": "ap-northeast-1"
+              },
+              {
+                  "name": "S3_BUCKET",
+                  "value": "t-spider-staging"
+              },
+              {
+                  "name": "APPROVAL_REPORT_BASE_URL",
+                  "value": "https://staging-admin.t-spider.cloud"
+              },
+              {
+                  "name": "APPROVAL_NOTIFICATION_SUBJECT_SUFFIX",
+                  "value": "test_enviroment"
+              },
+              {
+                  "name": "PDF_GENERATE_API_URL",
+                  "value": "https://vpce-0e608c8dfd4d61747-jr5eimte.execute-api.ap-northeast-1.vpce.amazonaws.com/stg"
+              },
+              {
+                  "name": "PDF_GENERATE_API_HEADER",
+                  "value": "x-apigw-api-id:fvhu0c5qd9"
+              }
+          ]
+      }
+  ],
+  "pidMode": null,
+  "requiresCompatibilities": [
+      "FARGATE"
+  ],
+  "networkMode": "awsvpc",
+  "runtimePlatform": {
+      "operatingSystemFamily": "LINUX",
+      "cpuArchitecture": null
+  },
+  "placementConstraints": [],
+  "memory": "2048",
+  "cpu": "1024",
+  "volumes": [],
+  "taskRoleArn": "arn:aws:iam::067483480333:role/ecsTaskRole",
+  "inferenceAccelerators": []
+}

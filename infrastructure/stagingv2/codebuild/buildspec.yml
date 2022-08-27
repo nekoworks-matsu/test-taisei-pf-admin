@@ -1,0 +1,41 @@
+version: 0.2
+
+env:
+  variables:
+    DOCKER_LOGIN_ID: docker_login_id
+    DOCKER_LOGIN_PASSWORD: docker_login_password
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+  pre_build:
+    commands:
+      - echo Logging in to Docker Hub...
+      - docker login --username ${DOCKER_LOGIN_ID} --password ${DOCKER_LOGIN_PASSWORD}
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+      - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+      - REPOSITORY_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - echo Build pwd `pwd`
+      - IMAGE_TAG1=BUILD_`date '+%Y-%m-%d_%H%M%S'`
+      - IMAGE_TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - echo "version":"$IMAGE_TAG"
+  build:
+    commands:
+      - echo Build started on `date`
+      - sed -i 's/"git_revision".*/"git_revision":\ '\"$IMAGE_TAG\"',/' app/static/version.json
+      - echo Building the Docker image...
+      - echo $IMAGE_REPO_NAME:$IMAGE_TAG
+      - docker build -t ${REPOSITORY_URI}:latest -f infrastructure/${DEPLOY}/nuxtjs/Dockerfile .
+      - docker tag ${REPOSITORY_URI}:latest ${REPOSITORY_URI}:${IMAGE_TAG}
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image to $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG ...
+      - docker push ${REPOSITORY_URI}:${IMAGE_TAG}
+      - docker push ${REPOSITORY_URI}:latest
+artifacts:
+  base-directory: infrastructure/${DEPLOY}
+  files:
+    - "**/*"
