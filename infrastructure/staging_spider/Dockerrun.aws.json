@@ -1,0 +1,70 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "volumes": [
+    {
+      "name": "nginx_conf",
+      "host": {
+        "sourcePath": "/var/app/current/nginx/nginx_admin.conf.template"
+      }
+    },
+    {
+      "name": "htpasswd",
+      "host": {
+        "sourcePath": "/var/app/current/nginx/.htpasswd"
+      }
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "admin",
+      "image": "899081388793.dkr.ecr.ap-northeast-1.amazonaws.com/t-spider-admin/staging:latest",
+      "essential": true,
+      "memory": 1024,
+      "portMappings": [
+        {
+          "hostPort": 3000,
+          "containerPort": 3000
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+            "awslogs-group": "/aws/elasticbeanstalk/t-spider/admin/nuxtjs/",
+            "awslogs-region": "ap-northeast-1",
+            "awslogs-stream-prefix": "staging"
+        }
+      }
+    },
+    {
+      "name": "nginx",
+      "image": "nginx:latest",
+      "essential": true,
+      "memory": 256,
+      "mountPoints": [
+        {
+          "sourceVolume": "nginx_conf",
+          "containerPath": "/etc/nginx/conf.d/default.conf"
+        },
+        {
+          "sourceVolume": "htpasswd",
+          "containerPath": "/etc/nginx/.htpasswd"
+        }
+      ],
+      "links": ["admin"],
+      "portMappings": [
+        {
+          "hostPort": 80,
+          "containerPort": 80
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+            "awslogs-group": "/aws/elasticbeanstalk/t-spider/admin/nginx/",
+            "awslogs-region": "ap-northeast-1",
+            "awslogs-stream-prefix": "staging"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+name: Upload to AWS S3 for Dev
+on:
+  push:
+    tags:
+      - '**-dev'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: repository
+
+      - name: Make archive
+        run: |
+          mkdir archive
+          cd repository
+          zip -qq -r ../archive/admin_dev.zip .
+          cd ..
+
+      - name: Publish to AWS S3
+        uses: opspresso/action-s3-sync@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ONMIRA_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ONMIRA_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: "ap-northeast-1"
+          FROM_PATH: "./archive"
+          DEST_PATH: "s3://taisei-pf-deploy-dev/admin/"

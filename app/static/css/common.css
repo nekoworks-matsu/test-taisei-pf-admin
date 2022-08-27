@@ -1,0 +1,118 @@
+@charset "utf-8";
+
+html, body, div, span, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+abbr, address, cite, code,
+del, dfn, em, img, ins, kbd, q, samp,
+small, strong, sub, sup, var,
+b, i,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section, summary,
+time, mark, audio, video {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    font-size: 100%;
+    vertical-align: baseline;
+    background: transparent;
+}
+
+body {
+	background-color : #d2d6de;
+	color : #333;
+	padding: 0;
+	margin: 0;
+	font-size: 1.4rem;
+}
+
+h1 {
+	padding: 0.2em 0;
+	font-size: 3.0em;
+	color: #FFF;
+}
+h2 {
+	font-size: 2.0em;
+	padding: 0.1em 0;
+	color: #FFF;
+	background-color: #999;
+	margin: 10px;
+}
+
+label {
+	font-size: 1.4em;
+	font-weight: bold;
+	display: block;;
+}
+
+input[type="text"] {
+	display: inline-block;
+	width: 90%;
+	height: 3.2em;
+	font-size: 1.4em;
+}
+
+button.btn {
+	display: inline-block;
+	width: 90%;
+	margin-top: 20px;
+	margin-bottom: 20px;
+    /* 文字サイズを1.4emに指定 */
+    font-size: 1.8em;
+
+    /* 文字の太さをboldに指定 */
+    font-weight: bold;
+
+    /* 縦方向に10px、
+     * 横方向に30pxの余白を指定 */
+    padding: 16px 30px;
+
+    /* 文字色を白色に指定 */
+    color: #fff;
+
+    /* ボーダーをなくす */
+    border-style: none;
+
+    /* グラデーションの指定 */
+    background: -moz-linear-gradient(bottom, #36d, #248 50%, #36d);
+    background: -webkit-gradient(linear, left bottom, left top, from(#36d), color-stop(0.5, #248), to(#36d));
+
+    /* 角丸の指定 */
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+
+p {
+	padding: 0.9em 0;
+	font-size: 0.6em;
+}
+
+p.error {
+	background-color: #dd4b39;
+	color: #FFF;
+}
+
+p.success {
+	background-color: #00a65a;
+	color: #FFF;
+}
+
+div#wrapper {
+	width: 100%;
+	margin: 0 auto;
+	text-align : center;
+	background-color: #FFF;
+}
+
+div#header {
+	background-color : #2d5ead;
+}
+
+div#contents {
+	background-color : #FFF;
+}
+
