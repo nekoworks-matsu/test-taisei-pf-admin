@@ -7,6 +7,6 @@ RUN apt-get update && \
     locale-gen ja_JP.UTF-8
 ENV LC_ALL ja_JP.UTF-8
 ADD infrastructure/stagingv2/nginx/nginx_admin.conf /etc/nginx/conf.d/default.conf
-ADD infrastructure/stagingv2/nginx/.htpasswd /etc/nginx/.httpasswd
+ADD infrastructure/stagingv2/nginx/.htpasswd /etc/nginx/.htpasswd
 RUN nginx -t
 EXPOSE 80
