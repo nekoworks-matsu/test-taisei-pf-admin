@@ -8,7 +8,7 @@ COPY ./app ./
 
 RUN yarn install
 
-ENV HOST=0.0.0.0 PORT=3000 NODE_ENV=dev_server
+ENV HOST=0.0.0.0 PORT=3000 NODE_ENV=stagingv2
 
 EXPOSE ${PORT}
 
