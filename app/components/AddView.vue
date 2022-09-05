@@ -25,7 +25,7 @@
         <div class="box">
           <!-- /.box-header -->
           <div class="box-body no-paddin">
-            <form class="form-horizontal" style="margin:0;">
+            <form class="form-horizontal" style="margin:0;" onsubmit="return false;">
               <div class="box-body">
                 <div class="form-group form_box_group" v-if="param.title != '業務/報告書定義'">
                   <div class="form_box_group_title">
@@ -60,7 +60,7 @@
                   </div>
 
                   <div class="display_flex" v-if="col.type=='datetime'">
-                    <div class="col-sm-2 max_width_200 min_width_185" style="padding-left: 0px;">
+                    <div class="col-sm-2 max_width_200 width_50_per" style="padding-left: 0px;">
                       <vuejs-datepicker class="form-control date_picker_small" :clear-button="true" :format="DatePickerFormat" :language="language" :value="col.date" name="datepicker" v-model="item[col.column]"  v-bind:placeholder="col.placeholder">
                       </vuejs-datepicker>
                     </div>
@@ -232,13 +232,17 @@
                   <div class="form_box_group_field" v-if="col.type=='multiTypeInputForms'">
                     {{createMultiTypeInputForms(item, col.column)}}
                     <div class="display_flex">
-                      <div class="no_border" style="width:150px">
+                      <div class="no_border" style="width:150px; display: flex; margin-bottom: 10px;">
+                        <button type="button" class="btn btn-default margin_right_10" @click="onAllChangeCheckbox(true)">全選択</button>
+                        <button type="button" class="btn btn-default" @click="onAllChangeCheckbox(false)">全解除</button>
+                      </div>
+                      <!-- <div class="no_border" style="width:150px">
                         <label class="control control_checkbox">
                           <input type="checkbox" :id="'all_change'" @click="onAllChangeCheckbox()">
                           <div class="control_indicator" style="margin-top: -10px;"></div>
                         </label>
                         <label class="item-text font_normal margin_left_20" for="all_change">全て選択/解除</label>
-                      </div>
+                      </div> -->
                       <div class="no_border floor_width">
                         <button type="button" class="input_file_button width_max cursor_pointer" :class="{add_floor_color: floorCategory==8}" :disabled="floorCategory!=8" @click="onAppendMultiTypeInputFormsButtonClickForSpecial('floors')"><i class="fa fa-plus"></i>　フロアを追加</button>
                       </div>
@@ -1169,12 +1173,14 @@
         }
         this.selectCompanyId = companyId;
         if (companyId != null){
-          this.onSearch('/companies/'+companyId+'/operation-types', null, null, (val) => {
-            this.param.columns[3].options = [];
-            val.forEach(function(item){
-              this.param.columns[3].options.push({name: item.name,id: item.id});
-            }.bind(this));
-          });
+          if (this.isSystemApprovalMode) {
+            this.onSearch('/companies/'+companyId+'/operation-types', null, null, (val) => {
+              this.param.columns[3].options = [];
+              val.forEach(function(item){
+                this.param.columns[3].options.push({name: item.name,id: item.id});
+              }.bind(this));
+            });
+          }
         }else{
           this.param.columns[3].options = [];
         }
@@ -1423,11 +1429,11 @@
         this.floorCategory = index;
         this.getFloorsCheckbox();
       },
-      onAllChangeCheckbox() {
+      onAllChangeCheckbox(isCheck) {
         if (this.item.floors.length == 1 && this.item.floors[0].type == undefined) {
           this.item.floors.length = 0;
         }
-        var isCheck = document.getElementById("all_change").checked;
+        // var isCheck = document.getElementById("all_change").checked;
         if (this.floorCategory != 8) {
           // var isCheck = document.getElementById("all_change").checked;
           this.$nextTick(function() {

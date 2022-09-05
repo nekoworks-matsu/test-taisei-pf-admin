@@ -304,7 +304,7 @@ export default {
         this.selectCompanyId = data.member.companyId;
         if (this.selectCompanyId != null) {
           if (this.operations.length <= 0) {
-            this.getOperationCategoriesRequest('/companies/'+this.selectCompanyId+'/operation-categories',true);            
+            this.getOperationCategoriesRequest('/companies/'+this.selectCompanyId+'/operation-categories', true);            
           }
         }
         this.item.buildingIds = this.normalizationRequestList(data.buildings, "id");
@@ -417,11 +417,30 @@ export default {
       return this.item[key][index];
     },
     /**
+     * 業務名取得
+     */
+    getOperationName(api, operations, operationCategories, cnt) {
+      if (operationCategories.length == cnt) {
+        this.operations = operations;
+        this.operations.splice();
+      } else {
+        this.req(api + '/' + operationCategories[cnt].operationTypeId, 'get', null, (err, res) => {
+          var find = operations.find(val => val.id == operationCategories[cnt].operationTypeId);
+          if (find == undefined) {
+            operations.push({name: res.body.name, id: operationCategories[cnt].operationTypeId});
+          }
+          this.getOperationName(api, operations, operationCategories, cnt + 1);
+        });
+      }
+    },
+    /**
       * マスタデータに定義されている業務の取得
       */
-    getOperationCategoriesRequest(api,getCompany) {
+    getOperationCategoriesRequest(api, getCompany) {
       var operations = [];
       this.req(api, 'get', null, (err, res) => {
+        this.getOperationName('/companies/'+localStorage.getItem("company_id")+'/operation-types', [], res.body, 0);
+        var find;
         for (var i = 0; i < res.body.length; i++) {
           find = operations.find(val => val.id == res.body[i].operationTypeId);
           if (find == undefined) {
@@ -429,7 +448,6 @@ export default {
           }
         }
         this.operations = operations;
-        this.operations.splice();
         if (getCompany) {
           this.getCompaniesListRequest('/companies');          
         }

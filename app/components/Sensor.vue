@@ -69,7 +69,7 @@
               </template>
             </div>
             <div class="display_flex" v-if="item.type=='datetime'">
-              <div class="col-sm-2 max_width_200 min_width_185" style="padding-left: 0px;">
+              <div class="col-sm-2 max_width_200 width_50_per" style="padding-left: 0px;">
                 <vuejs-datepicker class="form-control date_picker_small" :clear-button="true" :format="DatePickerFormat" :language="language" name="datepicker" v-model="graph.searchItem[item.column + '_date']" v-bind:placeholder="'カレンダーから選ぶ'">
                 </vuejs-datepicker>
               </div>

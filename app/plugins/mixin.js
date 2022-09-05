@@ -180,7 +180,7 @@ export default {
         displayFloor = []
       for (var i = 0; i < content.length; i++) {
         if (content[i].checked) {
-          checked.push(parseInt(content[i].id))
+          checked.push(parseInt(content[i].id.replace('floor_', '')))
           displayFloor.push({
             name: floors[i].value,
             input_type: floors[i].type,
@@ -542,6 +542,8 @@ export default {
       })
       if (param == 'monthly') {
         param = { s3RootPath: 'monthly-report-images' }
+      } else if (param == 'business') {
+        param = { s3RootPath: 'business-report-images' }
       } else if (param == null) {
         param = { s3RootPath: 'images' }
       } else {
@@ -899,13 +901,43 @@ export default {
         return ''
       }
     },
+    getBusinessReportErrorMsg(error, columns) {
+      error = error && error.body && error.body.error ? error.body.error : error;
+      const errCode = {
+        required: '必須項目です',
+        format: '不正なフォーマットです',
+        inclusion: '不正な値です',
+        'numericality.number': '不正な値です',
+        'length.max': '文字数オーバーです',
+        pattern: '不正な値です',
+        minimum: '不正な値です',
+        maximum: '不正な値です',
+        UNSUPPORTED_MEDIA_TYPE: 'ファイルが不正です',
+        correlation: '不正な範囲指定です',
+        type: '不正な値です',
+        maxLength: '文字数オーバーです'
+      };
+      try {
+        const errorList = [];
+
+        if (error.details) {
+          error.details.forEach(function(obj) {
+            var col = columns.find((v) => obj.path.includes(v.path));
+            var errmsg = col.name + ' : ' + errCode[obj.code];
+            errorList.unshift(errmsg);
+          })
+          return errorList.join('\n');
+        }
+      } catch (e) {
+        return '';
+      }
+    },
     onSearch(api, lo, where, cb) {
       if (api == null) {
         return
       }
       lo = lo || {}
       where && (lo.where = where)
-
       var url = api
       let buildingId = localStorage.getItem('buildings_id')
 
@@ -917,12 +949,14 @@ export default {
         let queryApi4 = '/buildings/' + buildingId + '/monthly-attendances'
         let queryApi5 = '/business-report'
         let queryApi6 = '/business-report/search-by-business-date'
+        let queryApi7 = '/report-objects'
         var url = ''
         if (
           api == queryApi ||
           api == queryApi2 ||
           api == queryApi5 ||
-          api == queryApi6
+          api == queryApi6 ||
+          api == queryApi7
         ) {
           url =
             api +
@@ -954,7 +988,7 @@ export default {
               encodeURIComponent(JSON.stringify(lo)) +
               '&' +
               this.now
-          } else if (lo != null) {
+          } else if (lo != null && (Object.keys(lo).length != 0)) {
             url =
               api +
               '?filter=' +
@@ -968,7 +1002,14 @@ export default {
       } else {
         if (api.match('access-logs')) {
           url = api
-        } else {
+        } else if (api == '/report-objects'){
+          url =
+            api +
+            '?searchQuery=' +
+            encodeURIComponent(JSON.stringify(lo)) +
+            '&' +
+            this.now
+        }else{
           url =
             api +
             '?filter=' +
@@ -1042,11 +1083,13 @@ export default {
         '/buildings/' + buildingId + '/report-objects/monthly-aggregation'
       let queryApi4 = '/business-report'
       let queryApi5 = '/business-report/search-by-business-date'
+      let queryApi6 = '/report-objects'
       if (
         api == queryApi ||
         api == queryApi2 ||
         api == queryApi4 ||
-        api == queryApi5
+        api == queryApi5 ||
+        api == queryApi6
       ) {
         url =
           api +
@@ -1685,6 +1728,99 @@ export default {
         return find.operationTypeId
       }
       return null
+    },
+    /**
+     * 業務報告書のステータス(Enum).
+     */
+    getBusinessReportStatus() {
+      return {
+        Making: {
+          value: 0,
+          text : '作成中'
+        },
+        Request: {
+          value: 1,
+          text : '依頼・クレーム・定期'
+        },
+        Check: {
+          value: 2,
+          text : '状況確認および対応'
+        },
+        WorkRequest: {
+          value: 3,
+          text : '作業依頼' // 想定作業内容の作業依頼
+        },
+        WorkReport: {
+          value: 4,
+          text : '作業報告' // 作業が終わった後
+        },
+        Complete: {
+          value: 5,
+          text : '確認完了'
+        }
+      }
+    },
+    /**
+     * 業務報告書のステータス(プルダウン用).
+     */
+    getBusinessReportStatusList() {
+      const list = [];
+      const statusList = this.getBusinessReportStatus();
+      for (const key in statusList) {
+        list.push({ label: statusList[key].text, id: statusList[key].value });
+      }
+      return list;
+    },
+    /**
+     * 業務報告書のステータスチェック処理.
+     */
+    checkBusinessReportStatus(statusObj) {
+      var result = { 'check': true, 'status': this.getBusinessReportStatus().Making };
+
+      const keys = Object.keys(statusObj).reverse();
+      // ステータスがどこまで進んでいるか確認する
+      // 後ろから確認してチェックが入っている最初のステータスを一時的に保持する
+      var lastStatus = {};
+      for (var i = 0; i < keys.length; i++) {
+        if (statusObj[keys[i]]) {
+          lastStatus[keys[i]] = statusObj[keys[i]];
+          break;
+        }
+      }
+
+      // どこにもチェックが入っていない場合は問題なし(チェックOK)として返却
+      if (Object.keys(lastStatus).length == 0) {
+        return result;
+      }
+
+      // チェックが入ってるステータスから前のステータスの状態を確認する
+      // チェックが入っていないステータスがある場合、問題あり(チェックNG)として返却する
+      const lastKey = Object.keys(lastStatus)[0];
+      switch(Number(lastKey)) {
+        case this.getBusinessReportStatus().Request.value:
+          result.status = this.getBusinessReportStatus().Request;
+          break;
+        case this.getBusinessReportStatus().Check.value:
+          result.status = this.getBusinessReportStatus().Check;
+          break;
+        case this.getBusinessReportStatus().WorkRequest.value:
+          result.status = this.getBusinessReportStatus().WorkRequest;
+          break;
+        case this.getBusinessReportStatus().WorkReport.value:
+          result.status = this.getBusinessReportStatus().WorkReport;
+          break;
+        case this.getBusinessReportStatus().Complete.value:
+          result.status = this.getBusinessReportStatus().Complete;
+          break;
+      }
+      for (var i = lastKey - 1; i > 0; i--) {
+        if (statusObj[i] !== undefined && !statusObj[i]) {
+          result.check = false;
+          break;
+        }
+      }
+
+      return result;
     }
   }
 }

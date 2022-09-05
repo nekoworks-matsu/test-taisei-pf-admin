@@ -8,7 +8,7 @@
       :is-full-page="fullpage"></loading>
     <div class="box content ctm_subtitle margin_bottom_0 box_shadow_none" v-bind:style="{'margin-top':tabletHeight+'px'}">
       <div class="box-body no-paddin">
-        <form  class="form-horizontal" autocomplete="off">
+        <form  class="form-horizontal" autocomplete="off" onsubmit="return false;">
           <div class="box-header with-border box_head t_box_head">
 						<button type="button" class="btn btn-default global_btn t_main_button" style="display: block; font-size: 16px;" @click="onCancelButtonClick('/t_majoritems/' + $route.params.operation_id + '/' + $route.params.majoritems_id  + '/details/' + param.id)">キャンセル</button>
 					</div>

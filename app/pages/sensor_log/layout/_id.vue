@@ -39,7 +39,8 @@
               <form name="searchForm" class="form-horizontal" style="margin:0;">
                 <div class="box-body">
                   <div class="form-group" v-for="form in searchForm" v-if="form.availableForSearch">
-                    <label class="col-sm-2 control-label">{{form.name}}</label>
+                    <label class="col-sm-2 control-label" v-if="form.type!=='cmpKeySelect'">{{form.name}}</label>
+                    
                     <div class="col-sm-10" v-if="form.type=='date'">
                       <div class="majoritem_search_ui width_200">
                         <div class="date_select_btn">
@@ -90,20 +91,41 @@
                         <option v-bind:value="opt.val" v-for="opt in form.options">{{opt.name}}</option>
                       </select>
                     </div>
-                    <div class="col-sm-10" v-if="form.type=='cmpSelect'">
+
+                    <template v-if="form.type=='cmpKeySelect'">
                       {{setSearchItemLength(form.column)}}
-                      <div class="max_width_390" v-for="i in input[form.column].length" :class="[{ 'display_flex': i != 1 }, { 'margin_top_8': i != 1 }]">
-                        <select class="form-control" :value="input[form.column][i - 1]" @change="pushSelectObjects($event.target.value, i, form.column)">
-                          <option v-bind:value="option.val" v-for="option in form.options">{{option.name}}</option>
-                        </select>
-                        <span class="input-group-btn width_auto" v-if="i != 1">
-                          <button type="button" class="btn btn-danger btn-flat height_max" @click="onRemoveSelectObject(i, form.column)"><i class="fa fa-minus"></i></button>
-                        </span>
+                      <template v-for="(searchItem, i) in input[form.column]"> 
+                        {{setKeyItem(form.column, i)}}
+                        <label class="col-sm-2 control-label" :class="{'margin_top_40': i!=0}">{{form.name}}</label>
+                        <div class="col-sm-10">
+                          <div class="max_width_390" :class="[{ 'display_flex': inputIndex != 0 }, { 'margin_top_8': inputIndex != 0 }]" v-for="(item, inputIndex) in searchItem">
+                            {{setKeyItemInput(form.column, i, inputIndex)}}
+                            <select class="form-control search_sensor_key" :value="keyItems[i][inputIndex].type" @change="pushSelectKeys($event.target.value, i, inputIndex, form.column)">
+                              <option v-bind:value="key.val" v-for="key in keys">{{key.name}}</option>
+                            </select>
+                            <select class="form-control search_sensor" :value="item.val" :class="{ 'margin_left_5': inputIndex != 0 }" @change="pushSelectObjects(keyItems[i][inputIndex].type, $event.target.value, i, inputIndex, form.column)" v-if="keyItems[i][inputIndex].length!==1">
+                              <option v-bind:value="option.val" v-for="option in keyItems[i][inputIndex].val">{{option.name}}</option>
+                            </select>
+                            <!-- <span class="input-group-btn width_auto" v-if="i != 1">
+                              <button type="button" class="btn btn-danger btn-flat height_max" @click="onRemoveSelectObject(i, form.column)"><i class="fa fa-minus"></i></button>
+                            </span> -->
+                          </div>
+                          <div class="both_buttons">
+                            <span class="input-group-btn width_auto padding_top_5" v-if="i !== 0">
+                              <button type="button" class="btn btn-danger btn-flat height_max" @click="onRemoveSearchItems(form.column, i)"><i class="fa fa-minus"></i></button>
+                            </span>
+                            <span class="input-group-btn width_auto padding_top_5 flex_right_side">
+                              <button type="button" class="btn btn-success btn-flat height_max" @click="onCopySearchItems(form.column, i)"><i class="fa fa-plus"></i> 条件コピー</button>
+                            </span>
+                          </div>
+                        </div>
+                      </template>
+                      <div class="col-sm-10 margin_top_10">
+                        <div class="max_width_390 to_right_btn">
+                          <button type="button" class="btn btn-success" @click.stop="onAddSearchItems(form.column)"><i class="fa fa-plus"></i></button>
+                        </div>
                       </div>
-                      <div class="box-body max_width_390 to_right_btn" style="padding-right: 0px;">
-                        <button type="button" class="btn btn-success" @click.stop="onAddSelectObject(form.column)"><i class="fa fa-plus"></i></button>
-                      </div>
-                    </div>
+                    </template>
                   </div>
                 </div>
               </form>
@@ -183,9 +205,11 @@
         imageIndex: null,
         uploading: false,
         buildingId: localStorage.getItem('buildings_id'),
-        floors: [{}],
-        areas: [{}],
-        tags: [{}],
+        floors: [{val: '', name: ''}],
+        areas: [{val: '', name: ''}],
+        targets:[{val: '', name: ''}],
+        categories: [{val: '', name: ''}],
+        tags: [{val: '', name: ''}],
         graphs: [],
         graphCnt: 0,
         resetKey: 0,
@@ -220,10 +244,19 @@
           {val: 'min', name: '最小'},
           {val: 'max', name: '最大'},
         ],
+        keys: [
+          {val: '', name: ''},
+          {val: 'floor', name: 'フロア'},
+          {val: 'area', name: 'エリア'},
+          {val: 'category', name: 'カテゴリ'},
+          {val: 'target', name: '対象'}
+        ],
         include: [
           'ids',
           'tagIds',
           'areaIds'
+        ],
+        keyItems: [
         ],
         input: {},
         item: {
@@ -303,7 +336,8 @@
     },
     methods: {
       init() {
-        this.getFloorRequest();
+        // this.getFloorRequest();
+        this.getTagListRequest();
       },
       setParam() {
         if (this.$route.params.id == 1) {
@@ -316,9 +350,9 @@
             { name: '期間', column: 'period', type: 'period' , date:"", hour:"", minute:"", availableForSearch: true },
             { name: '集計対象', column: 'name', type: 'unUsed', options: this.names, required: true, availableForSearch: false },
             { name: '集計方式', column: 'method', type: 'unUsed', options: this.methods, required: true, availableForSearch: false },
-            { name: 'フロア', column: 'floorId', type: 'select', options: this.floors, availableForSearch: true },
-            { name: 'エリア', column: 'area', type: 'select', options: this.areas, availableForSearch: true },
-            { name: 'タグ', column: 'tag', type: 'cmpSelect', options: this.tags, availableForSearch: true }
+            { name: 'フロア', column: 'floorId', type: 'select', options: this.floors, availableForSearch: false },
+            { name: 'エリア', column: 'area', type: 'select', options: this.areas, availableForSearch: false },
+            { name: '検索条件', column: 'searchs', type: 'cmpKeySelect', options: [], availableForSearch: true }
           ];
         } else if (this.$route.params.id == 2) {
           this.param.title = 'センサーログ(日付)';
@@ -330,9 +364,9 @@
             { name: '期間', column: 'period', type: 'period' , date:"", hour:"", minute:"", availableForSearch: true },
             { name: '集計対象', column: 'name', type: 'unUsed', options: this.names, required: true, availableForSearch: false },
             { name: '集計方式', column: 'method', type: 'unUsed', options: this.methods, required: true, availableForSearch: false },
-            { name: 'フロア', column: 'floorId', type: 'select', options: this.floors, availableForSearch: true },
-            { name: 'エリア', column: 'area', type: 'select', options: this.areas, availableForSearch: true },
-            { name: 'タグ', column: 'tag', type: 'cmpSelect', options: this.tags, availableForSearch: true }
+            { name: 'フロア', column: 'floorId', type: 'select', options: this.floors, availableForSearch: false },
+            { name: 'エリア', column: 'area', type: 'select', options: this.areas, availableForSearch: false },
+            { name: '検索条件', column: 'searchs', type: 'cmpKeySelect', options: [], availableForSearch: true }
           ];
         }
         this.startShowAt = {value: moment(new Date()).add(-1, 'days').format()};
@@ -394,17 +428,59 @@
       pushCmpSelectObjects(val, index, num, i, column) {
         this.graphs[index].searchItem[column][num].items[i] = val;
       },
-      pushSelectObjects(val, i, column) {
-        this.input[column][i - 1] = [val];
+      pushSelectKeys(type, i, inputIndex, column) {
+        switch(type) {
+          case 'floor':
+            this.$set(this.keyItems[i], inputIndex, {type: type, val: this.floors});
+            this.onResetSelectObject(i, inputIndex, column);
+            break;
+          case 'area':
+            this.$set(this.keyItems[i], inputIndex, {type: type, val: this.areas});
+            this.onResetSelectObject(i, inputIndex, column);
+            break;
+          case 'category':
+            this.$set(this.keyItems[i], inputIndex, {type: type, val: this.categories});
+            this.onResetSelectObject(i, inputIndex, column);
+            break;
+          case 'target':
+            this.$set(this.keyItems[i], inputIndex, {type: type, val: this.targets});
+            this.onResetSelectObject(i, inputIndex, column);
+            break;
+          case '':
+            this.onRemoveSelectObject(i, inputIndex, column);
+            this.onRemoveKeysObject(i, inputIndex);
+            return;
+            // this.$set(this.keyItems, i, {});
+            break;
+          default: 
+            this.$set(this.keyItems[i], inputIndex, {type: type, val: this.tags});
+            break;
+        }
+        if (this.input[column][i] !== null && inputIndex === this.input[column][i].length - 1) {
+          this.onAddSelectItemObject(column, i);
+        }
+      },
+      pushSelectObjects(key, val, i, inputIndex, column) {
+        this.input[column][i].splice(inputIndex, 1, {key: key, val: val});
       },
       setSearchItemLength(column) {
         if (this.input[column] == undefined) {
-          this.$set(this.input, column, [null])
+          this.$set(this.input, column, [[null]])
         }
       },
       setSearchItemsLength(index, column) {
         if (this.graphs[index].searchItem[column] == undefined) {
           this.$set(this.graphs[index].searchItem, column, [{items: ['']}])
+        }
+      },
+      setKeyItem(column, i) {
+        if (this.keyItems[i] == undefined) {
+          this.$set(this.keyItems, i, [null])
+        }
+      },
+      setKeyItemInput(column, i, inputIndex) {
+        if (this.keyItems[i][inputIndex] == undefined) {
+          this.$set(this.keyItems[i], inputIndex, [null])
         }
       },
       onAddCmpSelectObject(searchItem) {
@@ -419,11 +495,28 @@
       onRemoveCmpSelectObjects(index, i, column) {
         this.graphs[index].searchItem[column].splice(i, 1);
       },
-      onAddSelectObject(column) {
-        this.input[column].push(null);
+      onAddSearchItems(column) {
+        this.input[column].push([null]);
       },
-      onRemoveSelectObject(i, column) {
-        this.input[column].splice(i - 1, 1);
+      onRemoveSearchItems(column, i) {
+        this.input[column].splice(i, 1);
+        this.keyItems.splice(i, 1);
+      },
+      onCopySearchItems(column, i) {
+        this.input[column].push(this.input[column][i].concat());
+        this.keyItems.push(this.keyItems[i].concat());
+      },
+      onAddSelectItemObject(column, i) {
+        this.input[column][i].push(null);
+      },
+      onRemoveSelectObject(i, inputIndex, column) {
+        this.input[column][i].splice(inputIndex, 1);
+      },
+      onResetSelectObject(i, inputIndex, column) {
+        this.input[column][i].splice(inputIndex, 1, '');
+      },
+      onRemoveKeysObject(i, inputIndex) {
+        this.keyItems[i].splice(inputIndex, 1);
       },
       onAddGraph() {
         this.graphs.push({id: this.graphs[this.graphs.length - 1].id + 1, searchItem: {name: "count", method: "sum"}, val: 'bar'})
@@ -506,12 +599,12 @@
           var tag = '';
           searchItem.tag.forEach(val => {
             if (val !== null) {
-              tag == '' ? tag += val : tag += '%20' + val;
+              tag == '' ? tag += val.val : tag += '%20%2B' + val.val;
             }
           })
-          if (tag != '') {
-            query == '' ? query += '?tag=' + tag : query += '&tag=' + tag;
-          }
+        }
+        if (tag != '') {
+          query == '' ? query += '?tag=' + tag : query += '&tag=' + tag;
         }
         return '/sensorLogs/aggregate' + query;
       },
@@ -537,7 +630,8 @@
           res.data.forEach(val => {
             that.areas.push({val: val.name, name: val.name})
           });
-          that.getTagRequest();
+          // that.getTagRequest();
+          that.getTagListRequest();
         });
       },
       getTagRequest() {
@@ -545,7 +639,7 @@
         let building = '?perPage=0&used.buildingId=' + this.buildingId;
         this.getSensorHub('/tags'  + building, null, function(res) {
           res.data.forEach(val => {
-            that.tags.push({val: val.name, name: val.name})
+            that.tags.push({val: val, name: val})
           });
           that.tags.sort(function(a, b){
             if (a.val > b.val) {
@@ -558,6 +652,46 @@
           that.tags.splice(-1, 1);
 
           // that.searchForm[9].options = that.tags;
+          that.graphs.push({id: 1, searchItem: {}, val: 'bar'})
+          that.setParam();
+        });
+      },
+      setTag(key, datas) {
+        datas.forEach(data => {
+          switch(key) {
+            case 'floor':
+              this.floors.push({val: key + '%3A' + data.replace(new RegExp("^" + key + ':'), ''), name: data.replace(new RegExp("^" + key + ':'), '')})
+              break;
+            case 'area':
+              this.areas.push({val: key + '%3A' + data.replace(new RegExp("^" + key + ':'), ''), name: data.replace(new RegExp("^" + key + ':'), '')});
+              break;
+            case 'target':
+              this.targets.push({val: key + '%3A' + data.replace(new RegExp("^" + key + ':'), ''), name: data.replace(new RegExp("^" + key + ':'), '')});
+              break;
+            case 'category':
+              this.categories.push({val: key + '%3A' + data.replace(new RegExp("^" + key + ':'), ''), name: data.replace(new RegExp("^" + key + ':'), '')});
+              break;
+            default:
+              break;
+          }
+        })
+      },
+      getTagListRequest() {
+        this.onSearch('/buildings/' + this.buildingId, null, null, val => {});
+        var that = this;
+        let query = '?page=1&perPage=0&used=false&asStruct=false&sort=-id';
+        this.getSensorHub('/tag_choice_lists/' + this.buildingId + '/tags' + query, null, function(res) {
+          that.keys.forEach(key => {
+            if (key.val !== '') {
+              var data = res.data.filter(val => val.match(new RegExp("^" + key.val)));
+              data.sort(function(a,b){
+                if(a < b) return -1;
+                if(a > b) return 1;
+                return 0;
+              });
+              that.setTag(key.val, data);
+            }
+          });
           that.graphs.push({id: 1, searchItem: {}, val: 'bar'})
           that.setParam();
         });
@@ -576,7 +710,21 @@
         return labels;
       },
       makeGraphLabel(graph, cnt) {
-        return graph.tag[cnt] == null ? '指定なし' : graph.tag[cnt];
+        if (graph.searchs[cnt] === null) {
+          return '指定なし'
+        }
+        var label = '';
+        graph.searchs[cnt].forEach(search => {
+          if (search != null && search != '') {
+            if (label !== '') {
+              label += ', ';
+            }
+            label += search.val.substring(search.val.indexOf('%3A') + 3);
+          } else if (label == ''){
+            label = '指定なし';            
+          }
+        });
+        return label;
       },
       makeData(res, graph) {
         var datas = [];
@@ -606,10 +754,9 @@
       getSensorRequestsData(searchItem) {
         var item = {};
         Object.assign(item, searchItem)
-        delete item.tag;
         var requests = [];
-        for (var i = 0; i < searchItem.tag.length; i++) {
-          requests.push(this.getRequestData(item, searchItem.tag[i]))
+        for (var i = 0; i < searchItem.searchs.length; i++) {
+          requests.push(this.getRequestData(item, searchItem.searchs[i]))
         }
         return requests;
       },
@@ -620,7 +767,7 @@
         var endHour = (this.end_hh == null || this.end_hh == "") ? 0 : this.end_hh - 1;
         var endMinute = (this.end_mm == null || this.end_mm == "") ? 0 : this.end_mm - 1;
         var end = moment(this.changeDateFormat(this.endShowAt.value) + "T" + this.getDoubleDigestNumber(endHour) + ":" + this.getDoubleDigestNumber(endMinute) + ":00.000+09:00");
-
+        
         if ((!moment(start).isValid()) && (!moment(end).isValid())) {
           return res;
         }
@@ -645,7 +792,7 @@
         比較するタグの回数センサー情報の取得リクエスト
       */
       requestsSensorHub(requests, id, input, datasets, cnt, response) {
-        if (requests.length == cnt) {
+        if (requests.length === cnt) {
           this.chartDatas.unshift({
             id: id,
             type: 'bar',
@@ -658,7 +805,7 @@
           var that = this;
           this.getSensorHub(requestUrl, input, function(res) {
             datasets.push(that.getDataSet(that.complementEmptyData(res), input, cnt));
-            that.requestsSensorHub(requests, id, input, datasets, cnt + 1, res);
+            that.requestsSensorHub(requests, id, input, datasets, cnt+1, res);
           });
         }
       },

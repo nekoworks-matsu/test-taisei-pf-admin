@@ -54,7 +54,7 @@
                     <label class="control-label">開始日時</label>
                   </div>
                   <div class="display_flex">
-                    <div class="col-sm-2 max_width_200 min_width_185" style="padding-left: 0px;">
+                    <div class="col-sm-2 max_width_200 width_50_per" style="padding-left: 0px;">
                       <vuejs-datepicker v-bind:disabled="!(this.checkMenuPermission('Security:Schedule:update') || this.checkMenuPermission('Cleaning:Schedule:update'))" class="form-control date_picker_small" :clear-button="(role!='owner')" :format="DatePickerFormat" :language="language" name="datepicker" v-model="item.startdate"  placeholder="YYYY/MM/DD">
                       </vuejs-datepicker>
                     </div>
@@ -76,7 +76,7 @@
                     <label class="control-label">終了日時</label>
                   </div>
                   <div class="display_flex">
-                    <div class="col-sm-2 max_width_200 min_width_185" style="padding-left: 0px;">
+                    <div class="col-sm-2 max_width_200 width_50_per" style="padding-left: 0px;">
                       <vuejs-datepicker v-bind:disabled="!(this.checkMenuPermission('Security:Schedule:update') || this.checkMenuPermission('Cleaning:Schedule:update'))" class="form-control date_picker_small" :clear-button="(role!='owner')" :format="DatePickerFormat" :language="language" name="datepicker" v-model="item.enddate"  placeholder="YYYY/MM/DD">
                       </vuejs-datepicker>
                     </div>

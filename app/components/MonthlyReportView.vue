@@ -78,27 +78,7 @@
                     </tr>
                   </tbody>
                 </table>
-                <!-- <div role="grid" v-for="cols in this.list" v-if="readReportFlag">
-                  <h3 class="box-title with-border font_18">
-                    {{cols.label}}
-                    <nuxt-link v-bind:to="{path: '/monthly_report' + cols.path + '/' + changeDateFormat2(item.reportYearMonth) + '/' + item.operationCategoryId}" v-if="cols.label=='勤務スタッフ'&&!checkItemPermission('Report:Monthly:search:forOwner')">{{cols.num}}件</nuxt-link>
-                    <nuxt-link v-bind:to="{path: '/monthly_report/majoritems/' + changeDateFormat2(item.reportYearMonth) + '/' + item.operationCategoryId + '/' + cols.path}" v-if="cols.label!='勤務スタッフ'&&!checkItemPermission('Report:Monthly:search:forOwner')">{{cols.num}}件</nuxt-link>
-                    <span v-if="checkItemPermission('Report:Monthly:search:forOwner')">{{cols.num}}件</span>
-                  </h3>
-                  <table class="table table-bordered table-hover report" role="grid">
-                    <thead>
-                      <tr role="row">
-                        <th v-for="col in cols.columns">{{col.name}}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr role="row" v-for="col_data in cols.data_list" @click="$router.push(col_data.path)">
-                        <td v-for="col in col_data.columns" class="report">{{col.value}}</td> -->
-                        <!-- 改行含むテキストを表示する際、HTMLのソースコードの改行が影響するため一行で表記している -->
-                      <!-- </tr>
-                    </tbody>
-                  </table>
-                </div> -->
+              
               </div>
               <div v-if="itemInfo" class="callout callout-success"><p>{{itemInfo}}</p></div>
               <div v-if="error" class="callout callout-danger err-info"><p>{{error}}</p></div>
@@ -292,8 +272,10 @@ export default {
       var reportObjectDefinition = this.getReportObjectDefinitions(reportTemplateId);
       var majorItems = [];
       for (var i = 0; i < reportObjectDefinition.majoritems.length; i++) {
-        for (var j = 0; j < reportObjectDefinition.majoritems[i].reportObjectDefinitions.length; j++) {
-          majorItems.push({id: reportObjectDefinition.majoritems[i].reportObjectDefinitions[j].id, name: reportObjectDefinition.majoritems[i].reportObjectDefinitions[j].name})
+        if (reportObjectDefinition.majoritems[i].reportObjectDefinitions != null) {
+          for (var j = 0; j < reportObjectDefinition.majoritems[i].reportObjectDefinitions.length; j++) {
+            majorItems.push({id: reportObjectDefinition.majoritems[i].reportObjectDefinitions[j].id, name: reportObjectDefinition.majoritems[i].reportObjectDefinitions[j].name})
+          }
         }
       }
       return majorItems;
@@ -330,7 +312,7 @@ export default {
       for (var i = 0; i < templateList.length; i++) {
         if (templateList[i].templateId == requestParam.targetReport) {
           this.item.operationReportTemplateId = templateList[i].templateId;
-          this.item.operationCategoryId = templateList[i].operationCategoryId;
+          this.item.operationCategoryId = templateList[i].templateId;
           this.getMonthlyReportCountRequest(this.item.operationReportTemplateId, this.changeDateFormat2(requestParam.reportYearMonth).substr(0, 4), this.changeDateFormat2(requestParam.reportYearMonth).substr(5, 7));
         }
       }

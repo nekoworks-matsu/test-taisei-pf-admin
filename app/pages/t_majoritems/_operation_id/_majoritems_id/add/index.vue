@@ -7,7 +7,7 @@
       :is-full-page="fullpage"></loading>
     <div class="box content ctm_subtitle margin_bottom_0 box_shadow_none" v-bind:style="{'margin-top':tabletHeight+'px'}">
       <div class="box-body no-paddin">
-        <form  class="form-horizontal" autocomplete="off">        
+        <form  class="form-horizontal" autocomplete="off" onsubmit="return false;">        
           <div class="box-body padding_top_40 padding_bottom_60">
             <!-- <div class="padding_bottom_20" style="margin-right: auto; margin-left: auto; max-width: 540px">
               <button type="button" class="input_file_button" @click="pasteContent()" v-bind:class="{cursor_not_allowed: this.isPasteDisabled}" v-bind:disabled="this.isPasteDisabled">

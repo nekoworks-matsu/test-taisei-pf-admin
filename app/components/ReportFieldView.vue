@@ -8,7 +8,7 @@
             <tr role="row">
               <th v-if="isEdit"></th>
               <th>{{param.columnName[0]}}</th>
-              <th>{{param.columnName[1]}}</th>
+              <th>{{param.columnName[1]}}<a class="color_red2" v-if="isEdit">※</a></th>
               <th>{{param.columnName[2]}}</th>
               <th>{{param.columnName[3]}}</th>
               <th>{{param.columnName[4]}}</th>

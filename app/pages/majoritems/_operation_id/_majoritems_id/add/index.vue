@@ -32,7 +32,7 @@
           </div> -->
           <!-- /.box-header -->
           <div class="box-body no-paddin">
-            <form class="form-horizontal margin_0">
+            <form class="form-horizontal margin_0" onsubmit="return false;">
               <div class="box-body"> 
                 <!-- <div class="form-group form_box_group" :class="{vertical_layout: isVertical}">
                   <button type="button" class="input_file_button" @click="pasteContent()" v-bind:class="{cursor_not_allowed: this.isPasteDisabled}" v-bind:disabled="this.isPasteDisabled">
@@ -40,6 +40,18 @@
                     <span class="margin_left_10">コピー内容をペースト</span>
                   </button>
                 </div> -->
+
+                <div v-if="isHeadquartersMode" class="form-group form_box_group required" :class="{vertical_layout: isVertical}">
+                  <div class="form_box_group_title">
+                    <label class="control-label">対象ビル</label>
+                  </div>
+                  <div class="form_box_group_field">
+                    <select class="form-control" v-model="param.buildingId" @change="changedBuilding()">
+                      <option v-bind:value="building.value" v-for="building in param.buildings">{{building.name}}</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div class="form-group form_box_group" :class="{vertical_layout: isVertical}">
                   <div class="form_box_group_title">
                     <label class="control-label">ID</label>
@@ -107,7 +119,7 @@
                         <label class="input_file_head">
                           <input id="video_select" class="col-sm-8 control-label" style="display:none" type="file" accept="video/*" @change="onAddVideoFile">
                           <button type="button" class="input_file_button" @click="onVideoSelectFileClick">ファイル選択</button>
-                          <p class="input_file_notes">mp4形式に対応</p>
+                          <p class="input_file_notes">mp4,mov形式に対応</p>
                         </label>
 
                         <div class="input_file_image margin_top_20 margin_bottom_10">
@@ -276,7 +288,10 @@ export default {
   },
   data() {
     return {
+      isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
       param: {
+        buildingId: '',
+        buildings:[],
         title: '',
         reportObjectDefinitionId: '',
         init_val: {},
@@ -347,6 +362,13 @@ export default {
     VideoPlayer
   },
   methods: {
+    changedBuilding(){
+      localStorage.setItem('buildings_id',this.param.buildingId);
+      let api_for_list = '/report-object-definitions/' +this.$route.params.majoritems_id + '/report-field-definitions'
+      this.getMajoritemsHeader(api_for_list);
+      this.setMajoritemsTitle();
+      this.getBuildings();
+    },
     setMajorItemsHeader(val) {
       const majoritem_title = val.name //大項目名
       const columns_list = []
@@ -524,13 +546,16 @@ export default {
         if (columns_list[cnt].column.match('member')) {
           if (op.length == 0) {
             //NOTE:メンバーリスト存在しない場合、APIから取得
-            var member_api = '/buildings/' + localStorage.getItem('buildings_id') +'/members';
-            var where = {"and":[{"operationTypeId": this.getOperationTypeId(this.$route.params.operation_id)}, {"role":{"neq":3}}]};
-            this.onSearch(member_api, null, where, (val) => {
-              val.forEach(function(obj) {
-                op.push({ name: obj.name, value: obj.id })
-              })                
-            })
+            if (localStorage.getItem('buildings_id') != null) {
+              var member_api = '/buildings/' + localStorage.getItem('buildings_id') +'/members';
+              var where = {"and":[{"operationTypeId": this.getOperationTypeId(this.$route.params.operation_id)}, {"role":{"neq":3}}]};
+              this.onSearch(member_api, null, where, (val) => {
+                val.forEach(function(obj) {
+                  op.push({ name: obj.name, value: obj.id })
+                })                
+              })
+            }
+            
           }
           columns_list[cnt] = {
             name: columns_list[cnt].name,
@@ -656,8 +681,13 @@ export default {
         return 0;
       });
 
+      if (this.param.buildingId == '' || this.param.buildingId == null){
+        this.error = "ビル:必須項目です";
+        return;
+      }
+
       var send_data = {
-        buildingId: localStorage.getItem('buildings_id'),
+        buildingId: this.param.buildingId,
         reportObjectDefinitionId: this.param.reportObjectDefinitionId,
         reportedBy: Number(localStorage.getItem('member_id')),
         continuation: document.getElementsByName("continuation")[0].checked,
@@ -830,11 +860,15 @@ export default {
     getModalViewContent(resdata) {
       var name = "";
       var floors = [];
-      this.onSearch('/buildings/' + localStorage.getItem('buildings_id'), null, null, (val) => {
-        this.param.display_floors = this.displayFloorFormat(val.floors, null, true);
-        this.param.floors = this.displayFloorFormat(val.floors, null, false);
+      if (localStorage.getItem('buildings_id') != null){
+        this.onSearch('/buildings/' + localStorage.getItem('buildings_id'), null, null, (val) => {
+          this.param.display_floors = this.displayFloorFormat(val.floors, null, true);
+          this.param.floors = this.displayFloorFormat(val.floors, null, false);
+          this.setMajorItemsHeader(resdata);
+        })        
+      }else{
         this.setMajorItemsHeader(resdata);
-      })
+      }
     },
     openModal(id) {
       var modal_content = document.getElementsByName(id);
@@ -1083,16 +1117,18 @@ export default {
           }else if (columns_list[cnt].column.match('member')) {
             if (op.length == 0) {
               //NOTE:メンバーリスト存在しない場合、APIから取得
-              var member_api ='/buildings/' +localStorage.getItem('buildings_id') +'/members'
-              // var where = {"and":[{"operationCategoryId": this.$route.params.operation_id}, {"role":{"neq":3}}]};
-              var where = {"and":[{"operationTypeId": this.getOperationTypeId(this.$route.params.operation_id)}, {"role":{"neq":3}}]};
               var op = []
-              this.onSearch(member_api, null, where, (val) => {
-                val.forEach(function(obj) {
-                  // op.push({  name: obj.name,value: obj.id })
-                  op.push({ name: obj.name, value: obj.id })
+              if (localStorage.getItem('buildings_id') != null) {
+                var member_api ='/buildings/' +localStorage.getItem('buildings_id') +'/members'
+                // var where = {"and":[{"operationCategoryId": this.$route.params.operation_id}, {"role":{"neq":3}}]};
+                var where = {"and":[{"operationTypeId": this.getOperationTypeId(this.$route.params.operation_id)}, {"role":{"neq":3}}]};
+                this.onSearch(member_api, null, where, (val) => {
+                  val.forEach(function(obj) {
+                    // op.push({  name: obj.name,value: obj.id })
+                    op.push({ name: obj.name, value: obj.id })
+                  })
                 })
-              })
+              }   
             }
             columns_list[cnt] = {
               name: columns_list[cnt].name,
@@ -1130,16 +1166,19 @@ export default {
       * モーダルウィンドウのbodyに表示する内容の取得
       */
     getFloorsContents() {
-      this.onSearch('/buildings/' + localStorage.getItem('buildings_id'), null, null, (val) => {
-        var checkFloors  = [];
-        for (var i = 0; i < this.param.columns.length; i++) {
-          if (this.param.columns[i].column.match('floor')) {
-            checkFloors = this.param.columns[i].value;
+      if (localStorage.getItem('buildings_id') != null){
+        this.onSearch('/buildings/' + localStorage.getItem('buildings_id'), null, null, (val) => {
+          var checkFloors  = [];
+          for (var i = 0; i < this.param.columns.length; i++) {
+            if (this.param.columns[i].column.match('floor')) {
+              checkFloors = this.param.columns[i].value;
+            }
           }
-        }
-        this.param.display_floors = this.displayFloorFormat(val.floors, checkFloors, true);
-        this.param.floors = this.displayFloorFormat(val.floors, checkFloors, false);
-      })
+          this.param.display_floors = this.displayFloorFormat(val.floors, checkFloors, true);
+          this.param.floors = this.displayFloorFormat(val.floors, checkFloors, false);
+        })
+      }
+      
     },
     setContinuation(val) {
       if (val.reportObject.continuation) {
@@ -1211,6 +1250,31 @@ export default {
       // } else {
       //   this.isPasteDisabled = true;
       // }
+    },
+    setBuildings() {
+      var where = {"and":[{"companyId": parseInt(localStorage.getItem('company_id'))}]};
+      var that = this;
+      this.onSearch('/buildings', null, where, val => {
+        val.forEach(function(obj){
+          that.param.buildings.push({name: obj.name, value: obj.id});
+        });
+      })
+    },
+    getBuildings(){
+      this.param.buildingId = localStorage.getItem('buildings_id');
+      var buildings;
+      if (localStorage.getItem('role') == 'systemApproval') {
+        this.setBuildings();
+      } else {
+        buildings = JSON.parse(localStorage.getItem('building_list'));
+        for (var i = 0; i < buildings.length; i++) {
+          const biru = buildings[i];
+          this.param.buildings[i+1] = {name: biru.name, value: biru.id};
+        }
+        if (buildings.length == 0){
+          this.error = "選択できるビルがありません";
+        }
+      }
     }
   },
   created() {
@@ -1220,6 +1284,7 @@ export default {
       let api_for_list = '/report-object-definitions/' +this.$route.params.majoritems_id + '/report-field-definitions'
       this.getMajoritemsHeader(api_for_list);
       this.setMajoritemsTitle();
+      this.getBuildings();
     });
   },
   updated() {

@@ -92,12 +92,14 @@ export default {
             }
             content.reportObjectGroupDefinition.sort = content.sort ?? sort;
             const reportObjectDefinitions = [];
-            content.reportObjectGroupDefinition.reportObjectDefinitions.forEach((defenitions) => {
-              var definitionFound = disabled.find(val => val == defenitions.id);
-              if (!definitionFound) {
-                reportObjectDefinitions.push(defenitions);
-              }
-            })
+            if (content.reportObjectGroupDefinition.reportObjectDefinitions != null) {
+              content.reportObjectGroupDefinition.reportObjectDefinitions.forEach((defenitions) => {
+                var definitionFound = disabled.find(val => val == defenitions.id);
+                if (!definitionFound) {
+                  reportObjectDefinitions.push(defenitions);
+                }
+              })
+            }
             reportObjectDefinitions.sort(function(a,b){
               if(a.sort < b.sort) return -1;
               if(a.sort > b.sort) return 1;

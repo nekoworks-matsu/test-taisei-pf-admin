@@ -30,7 +30,7 @@
         <div class="box">
           <!-- /.box-header -->
           <div class="box-body no-paddin">
-            <form class="form-horizontal" autocomplete="off">
+            <form class="form-horizontal" autocomplete="off" onsubmit="return false;">
               <div class="box-body">
 
                 <div class="form-group form_box_group required">

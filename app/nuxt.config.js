@@ -77,6 +77,9 @@ module.exports = {
     /*
     ** You can extend webpack config here
     */
+    parallel: true,
+    cache: true,
+    hardSource: true,
     transpile: /@fullcalendar.*/,
     filenames: {
       app: ({ isDev }) => isDev ? '[name].[hash].js' : '[chunkhash].js',

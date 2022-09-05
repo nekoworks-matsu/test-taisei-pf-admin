@@ -32,5 +32,20 @@
     "node_modules",
     ".nuxt",
     "dist"
-  ]
+  ],
+  "use": [
+        {
+            "loader": "thread-loader",
+            "options": {
+                "workers": "require('os').cpus().length - 1",
+            }
+        },
+        {
+            "loader": "ts-loader",
+            "options": {
+                "transpileOnly": true,
+                "happyPackMode": true
+            }
+        }
+    ]
 }

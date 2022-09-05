@@ -14,6 +14,7 @@ export default {
       param: {
         title: '',
         member: '',
+        isApply: this.toBoolean(localStorage.getItem('is_apply')), // 申請フラグ(仮) 
         columns: [
           { name: '報告日', column: 'reportedAt', type: 'datePicker', required: true },
           { name: '天候', column: 'weather', required: true, maxlength: 32 },

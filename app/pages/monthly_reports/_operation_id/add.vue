@@ -383,6 +383,11 @@
             this.maxMajorItemsSize = this.graphIds.length;
             this.loadedMajorItemSize = 0;
             this.graphIndex = 0;
+            if (this.maxMajorItemsSize == 0) {
+              this.loading = false;
+              this.error = 'このビルではグラフを使用できません。';
+              return;
+            }
             this.getGraphData();
           }
         })

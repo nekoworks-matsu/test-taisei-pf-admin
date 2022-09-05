@@ -188,12 +188,9 @@
                   <div class="form_box_group_field">
                     {{createMultiTypeInputForms('floors')}}
                     <div class="display_flex">
-                      <div class="no_border" style="width:150px">
-                        <label class="control control_checkbox">
-                          <input type="checkbox" :id="'all_change'" @click="onAllChangeCheckbox()">
-                          <div class="control_indicator" style="margin-top: -10px;"></div>
-                        </label>
-                        <label class="item-text font_normal margin_left_20" for="all_change">全て選択/解除</label>
+                      <div class="no_border" style="width:150px; display: flex; margin-bottom: 10px;">
+                        <button type="button" class="btn btn-default margin_right_10" @click="onAllChangeCheckbox(true)">全選択</button>
+                        <button type="button" class="btn btn-default" @click="onAllChangeCheckbox(false)">全解除</button>
                       </div>
                       <div class="no_border floor_width">
                         <button type="button" class="input_file_button width_max cursor_pointer" :class="{add_floor_color: floorCategory==8}" :disabled="floorCategory!=8" @click="onAppendMultiTypeInputFormsButtonClickForSpecial('floors')" v-if="this.checkItemPermission('Master:Building:update:floors')"><i class="fa fa-plus"></i>　フロアを追加</button>
@@ -300,6 +297,22 @@
                     </div>
                     <div class="item-text" v-if="!this.checkItemPermission('Master:Building:update:displayObjectIfEmpty')">
                       {{getDisplayObjectIfEmpty(item.displayObjectIfEmpty)}}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group form_box_group">
+                  <div class="form_box_group_title">
+                    <label class="control-label">業務報告書</label>
+                  </div>
+                  <div class="form_box_group_field">
+                    <div v-for="(operation, index) in operations">
+                      <label class="control control_checkbox">
+                        <input type="checkbox" @change="changeOperation4BusinessReportGroup('operation_business_report_group_' + operation.id, operation.id)" name="check_operation_business_report_group" v-bind:id="'operation_business_report_group_' + operation.id" checked v-if="tempOperation4BusinessReportGroup[operation.id].checked">
+                        <input type="checkbox" @change="changeOperation4BusinessReportGroup('operation_business_report_group_' + operation.id, operation.id)" name="check_operation_business_report_group" v-bind:id="'operation_business_report_group_' + operation.id" v-if="!tempOperation4BusinessReportGroup[operation.id].checked">
+                        <div class="control_indicator"></div>
+                      </label>
+                      <label class="work_position" v-bind:for="'operations' + operation.id">{{ operation.name }}</label>
                     </div>
                   </div>
                 </div>
@@ -507,6 +520,8 @@
         targetMajorItems:[],
         templateOperations: [],
         selectTemplates: [],
+        operation4BusinessReportGroup: [],
+        tempOperation4BusinessReportGroup: [],
         fullpage: true,
         image: '',
         isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
@@ -603,6 +618,7 @@
           displayObjectIfEmpty: this.item.displayObjectIfEmpty,
           businessStartTime: time,
           operationTemplates: this.getRequestTemplates(),
+          operationBusinessReportGroups: this.tempOperation4BusinessReportGroup.filter((obj) => obj.checked).map((obj) => {return obj.operationTypeId}),
           floors: this.convertFloors(this.item.floors),
           approveNotificationActive: this.item.approveNotificationActive,
           approveNotificationDefinitions: this.notificationEmails
@@ -623,6 +639,7 @@
                 localStorage.setItem('buildings_name', res.body.name);
                 localStorage.setItem('display_object_if_empty', res.body.buildingSetting.displayObjectIfEmpty);
                 localStorage.setItem('business_start_time', moment(res.body.buildingSetting.businessStartTime, 'HH:mm:ss').add(9, 'h').format('HH:mm:ss'));
+                this.getOperation4BusinessReportGroup();
                 // var templateList = JSON.parse(localStorage.getItem('template_list'));
                 // var newList = [];
                 // templateList.forEach(function(template) {
@@ -645,6 +662,21 @@
             }
           }
         );
+      },
+      getOperation4BusinessReportGroup() {
+        this.onSearch('/business-report-group-definitions?companyId='+parseInt(localStorage.getItem('company_id'))+"&buildingId="+this.$route.params.id, null, null, (res) => {
+          this.operation4BusinessReportGroup = [];
+          console.dir(res);
+          res.forEach((val, index) => {
+            if (val.buildingHasBusinessReports != null) {
+              const businessReportDefinitions = [];
+              val.buildingHasBusinessReports.forEach((val2) => {
+                businessReportDefinitions.push({id: val2.id, name: val2.businessReportDefinition.name})
+              })
+              this.operation4BusinessReportGroup.push({id: val.id, name: val.name, operationTypeId: val.operationTypeId});
+            }
+          });
+        })
       },
        /**
        * マスタデータに定義されている業務の取得
@@ -791,9 +823,11 @@
           const operationType = operationTypes.body.find(val => val.id == res[i].operationTypeId);
           operations.push({ id: res[i].id, name: operationType.name, reportName: res[i].reportName});
           this.notificationEmails.push({"operationCategoryId": res[i].id, "destination": ""});
+          // 業務報告書を利用する業務種別のチェック
+          this.tempOperation4BusinessReportGroup[res[i].id] = { 'operationTypeId': res[i].operationTypeId, 'checked': 0 < this.operation4BusinessReportGroup.filter((obj) => obj.operationTypeId == res[i].operationTypeId).length };
         }
-       this.operations = operations;
-       this.getNotificationEmail(data.approveNotificationDefinitions);
+        this.operations = operations;
+        this.getNotificationEmail(data.approveNotificationDefinitions);
       },
       /**
        * create時の設定されている業務テンプレートを取得
@@ -942,6 +976,7 @@
           this.item.mm = parseInt(data.buildingSetting.businessStartTime.substr(3,2));
           // this.item.operationTemplates = this.getOperationTemplates(data.buildingOperationReports, 'operationTemplates');
           this.getOperationCategories(data);
+          this.getOperation4BusinessReportGroup();
           this.tmpUpdatedAt = this.item.updatedAt;
           this.item.floors = this.sortFloors(data.floors);
 
@@ -1368,8 +1403,8 @@
         this.floorCategory = index;
         this.getFloorsCheckbox();
       },
-      onAllChangeCheckbox() {
-        var isCheck = document.getElementById("all_change").checked;
+      onAllChangeCheckbox(isCheck) {
+        // var isCheck = document.getElementById("all_change").checked;
         if (this.floorCategory != 8) {
           this.$nextTick(function() {
             this.floors.forEach(value => {
@@ -1414,7 +1449,17 @@
         this.alert.note = '※この操作は取り消すことはできません。'
         this.alert.isConfirm = true;
         $('#modal_alert').modal('show')
-      }
+      },
+
+      /**
+       * 業務報告書のチェック処理
+       *   どの業務種別で利用するかチェックする
+       */
+      changeOperation4BusinessReportGroup(id, operationId) {
+        var checkbox = document.getElementById(id);
+        this.tempOperation4BusinessReportGroup[operationId].checked = checkbox == null ? false : checkbox.checked; // データ
+        return;
+      },
     },
     created() {
       const key = "Master:Building:update";

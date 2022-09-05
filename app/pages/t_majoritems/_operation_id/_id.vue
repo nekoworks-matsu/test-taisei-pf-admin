@@ -827,6 +827,7 @@ export default {
   created() {
     const key = (parseInt(this.$route.params.operation_id ) == 1) ? "Security:ReportObject:search" : "Cleaning:ReportObject:search";
     this.checkDisplayPermission(key,() => {
+      this.setMembers();
       this.param.api = '/report-objects/search-by-business-date';
       this.setMajoritemsTitle();
       this.setSearchItem();

@@ -56,30 +56,35 @@
         });
       },
       /**
-       * マスタデータに定義されている業務の取得
+       * 業務名取得
        */
-      getOperationCategoryListRequest(api) {
-        var operations = [];
-        this.req(api, 'get', null, (err, res) => {
-          if (this.isSystemApprovalMode) {
-          } else {
-            var companyId = localStorage.getItem("company_id")
-          }
-          res.body.forEach(value => {
-            find = operations.find(val => val.id == value.operationTypeId);
-            if (find == undefined) {
-              operations.push({name: value.reportName.replace("報告書", ""), id: value.operationTypeId});
-            }
-          });
-          // for (var i = 0; i < res.body.length; i++) {
-          //   operations.push({ id: res.body[i].id, name: res.body[i].operationName });
-          // }
+      getOperationName(api, operations, operationCategories, cnt) {
+        if (operationCategories.length == cnt) {
           if (this.isSystemApprovalMode) {
             this.param.columns[3].options = operations;
           } else {
             this.param.columns[2].options = operations;
           }
-          
+        } else {
+          this.req(api + '/' + operationCategories[cnt].operationTypeId, 'get', null, (err, res) => {
+            var find = operations.find(val => val.id == operationCategories[cnt].operationTypeId);
+            if (find == undefined) {
+              operations.push({name: res.body.name, id: operationCategories[cnt].operationTypeId});
+            }
+            this.getOperationName(api, operations, operationCategories, cnt + 1);
+          });
+        }
+      },
+      /**
+       * マスタデータに定義されている業務の取得
+       */
+      getOperationCategoryListRequest(api) {
+        this.req(api, 'get', null, (err, res) => {
+          if (this.isSystemApprovalMode) {
+          } else {
+            var companyId = localStorage.getItem("company_id")
+          }
+          this.getOperationName('/companies/'+localStorage.getItem("company_id")+'/operation-types', [], res.body, 0);
         });
       },
       /**
@@ -105,10 +110,7 @@
             list.push({ name: obj.name, value: obj.id});
           });
           this.param.columns[1].options = list;
-          //TODO:ここをoperationTypeで取得する 選択後に取得するよう修正?
-          // this.getOperationCategoryListRequest('/operation-categories');
           this.getRoleListRequest('/members/roles');
-          // this.getBuildingsListRequest('/buildings');
           this.param.columns[4].disabled = true;
         });
       }

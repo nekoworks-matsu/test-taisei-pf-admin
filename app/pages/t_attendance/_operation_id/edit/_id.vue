@@ -56,7 +56,7 @@
               </div>
             </div>
 
-            <div class="form-group required t_form_parts padding_bottom_20" style="margin-right: auto; margin-left: auto">
+            <div class="form-group t_form_parts padding_bottom_20" style="margin-right: auto; margin-left: auto">
               <div class="t_form_parts_title">
                 <label class="control-label">退勤時間</label>
               </div>

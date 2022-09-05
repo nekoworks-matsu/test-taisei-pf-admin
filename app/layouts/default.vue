@@ -375,7 +375,7 @@
                         </a>
                       </li>
                     </ul>
-                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" @click="removeSearchItem('/report_calendars/'+report_menu.id)" v-if="(checkMenuPermission('Security:ReportSchedule:search') || checkMenuPermission('Cleaning:ReportSchedule:search')) && !isHeadquartersMode">
+                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" @click="removeSearchItem('/report_calendars/'+report_menu.id)" v-if="(checkMenuPermission('Security:ReportSchedule:search') || checkMenuPermission('Cleaning:ReportSchedule:search')) && !isHeadquartersMode && isAppry">
                       <li :class="{ active: path=='/report_calendars/'+report_menu.id , current: path=='/report_calendars/'+report_menu.id }">
                         <a>
                           <figure class="ts_ex_sidebar_menu_icon">
@@ -408,7 +408,7 @@
                         </a>
                       </li>
                     </ul>
-                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" @click="removeSearchItem('/report_approval/'+report_menu.id)" v-if="(checkMenuPermission('Security:ApproveReport:search') || checkMenuPermission('Cleaning:ApproveReport:search')) && !isHeadquartersMode">
+                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" @click="removeSearchItem('/report_approval/'+report_menu.id)" v-if="(checkMenuPermission('Security:ApproveReport:search') || checkMenuPermission('Cleaning:ApproveReport:search')) && !isHeadquartersMode && isAppry">
                       <li :class="{ active: path=='/report_approval/'+report_menu.id, current: path=='/report_approval/'+report_menu.id }">
                         <a>
                           <figure class="ts_ex_sidebar_menu_icon">
@@ -430,9 +430,8 @@
                         </a>
                       </li>
                     </ul>
-                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" :id="'majoritems'+index+'_'+index2" :name="'majoritems'" v-for="(majoritems_group, index2) in report_menu.majoritems" v-if="(checkMenuPermission('Security:ReportObject:search') || checkMenuPermission('Cleaning:ReportObject:search')) && !isHeadquartersMode" :key="majoritems_group.name">
+                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" :id="'majoritems'+index+'_'+index2" :name="'majoritems'" v-for="(majoritems_group, index2) in report_menu.majoritems" v-if="(checkMenuPermission('Security:ReportObject:search') || checkMenuPermission('Cleaning:ReportObject:search'))" :key="majoritems_group.name && !isSystemApprovalMode">
                       {{setActiveIndex(majoritems_group.reportObjectDefinitions, report_menu.id, index, index2, path)}}
-                      <!-- <li :class="{ active: (index===activeIndex) && (index2===activeIndex2) && activeFlag, current: (index===activeIndex) && (index2===activeIndex2) && activeFlag, 'menu-open': (index===activeIndex) && (index2===activeIndex2) }"> -->
                       <li :class="{ active: (index===activeIndex) && (index2===activeIndex2) && activeFlag, current: (index===activeIndex) && (index2===activeIndex2) && activeFlag}" v-if="(majoritems_group.name!='センサーログ')">
                         <a>
                           <figure class="ts_ex_sidebar_menu_icon">
@@ -457,26 +456,20 @@
                         </a>
                         <ul class="ts_ex_sidebar_menu_child" :class="{ts_ex_sidebar_menu_child_open: (isSensorLog && majoritems_group.name=='センサーログ')}">
                           <li class="cursor_pointer" v-for="sensor_log in sensor_log_menus" v-bind:to="'/sensor_log/'+ sensor_log.id" :class="{ active: path==='/sensor_log/'+ sensor_log.id }" :key="sensor_log.name" @click="removeSearchItem('/sensor_log/'+ sensor_log.id)">
-                            <a>○ {{sensor_log.name}} </a>
+                            <a :class="{select_menu_child: path==='/sensor_log/'+ sensor_log.id }">○ {{sensor_log.name}} </a>
                           </li>
                         </ul>
                       </li>
                     </ul>
-                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" :id="'business_report'+index+'_'+index3" v-for="(businessReportGroup, index3) in menuList.businessReportGroupDefinitions" v-if="report_menu.operation_type_id == businessReportGroup.operationTypeId">
-                      {{setActiveIndex(businessReportGroup.businessReportDefinitions, report_menu.id, index, index3, path)}}
-                      <li>
+                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" :id="'business_report'+index+'_'+index3" v-for="(businessReportGroup, index3) in menuList.businessReportGroupDefinitions" v-if="checkMenuPermission('Equipment:BusinessReport:search') && report_menu.operation_type_id == businessReportGroup.operationTypeId">
+                      <li :class="{ active: path=='/business_report/'+report_menu.id+'/'+businessReportGroup.id, current: path=='/business_report/'+report_menu.id+'/'+businessReportGroup.id }" @click="removeSearchItem('/business_report/'+report_menu.id+'/'+businessReportGroup.id)">
                         <a>
                           <figure class="ts_ex_sidebar_menu_icon">
                             <img class="active" src="../assets/icon_note_green.svg" alt="">
                             <img class="normal" src="../assets/icon_note_white.svg" alt="">
                           </figure>
-                          <p @click="setActive(index, index3, businessReportGroup.name)">{{businessReportGroup.name}}</p>
+                          <p>{{businessReportGroup.name}}</p>
                         </a>
-                        <ul class="ts_ex_sidebar_menu_child" :class="{ts_ex_sidebar_menu_child_open: ((index===activeIndex) && (index3===activeIndex2) && activeFlag && !isClose) || index3 == activeIndex3}">
-                          <li class="cursor_pointer" v-for="businessReportDefinition in businessReportGroup.businessReportDefinitions" v-bind:to="'/business_report/'+ report_menu.id +'/'+businessReportDefinition.id" :key="businessReportDefinition.name" @click="removeSearchItem('/business_report/'+ report_menu.id+'/'+businessReportDefinition.id)">
-                            <a :class="{select_menu_child: path==='/business_report/'+ report_menu.id+'/'+businessReportDefinition.id }">○ {{businessReportDefinition.name}}</a>
-                          </li>
-                        </ul>
                       </li>
                     </ul>
                   </div>
@@ -548,6 +541,7 @@ export default {
       companyName: '',
       buildingId: localStorage.getItem('buildings_id'),
       memberId: localStorage.getItem('member_id'),
+      isAppry: this.toBoolean(localStorage.getItem('is_apply')),
       autoConfigId: [],
       role: localStorage.getItem('role'), 
       operationId: '',
@@ -638,16 +632,15 @@ export default {
         }else{
           this.path =route.fullPath;
         }
-      } else if (this.path == 'monthly_reports') {
-        if (route.fullPath.indexOf('add') >= 0 || route.fullPath.indexOf('details') >= 0) {
-          this.path = '/' + this.path + '/' + this.$route.params.operation_id;
+      } else if (this.path == 'report_approval') {
+        if (route.fullPath.indexOf('add') >= 0 || route.fullPath.indexOf('details') >= 0 || route.fullPath.indexOf('edit') >= 0) {
+          // this.path = '/' + this.path + '/' + this.$route.params.report_id;
         } else {
           this.path = route.fullPath;
         }
-      }
-      else if (this.path == 'report_approval') {
+      } else if (this.path == 'business_report') {
         if (route.fullPath.indexOf('add') >= 0 || route.fullPath.indexOf('details') >= 0 || route.fullPath.indexOf('edit') >= 0) {
-          this.path = '/' + this.path + '/' + this.$route.params.report_id;
+          this.path = '/' + this.path + '/' + this.$route.params.operation_id + '/' + this.$route.params.report_group_id;
         } else {
           this.path = route.fullPath;
         }
@@ -655,6 +648,8 @@ export default {
         this.path = route.fullPath;
       } else if (this.path == 'report_calendars') {
         this.path = '/' + this.path + '/' + this.$route.params.id;
+      } else if (this.path == 'sensor_log') {
+        this.path = '/' + this.path + '/layout/' + this.$route.params.id;
       }
     },
     watchEventHandler(event) {
@@ -722,7 +717,7 @@ export default {
     setActiveIndex(categories, operation_type, index, index2, path) {
       if (categories) {
         for (var i = 0; i < categories.length; i++) {
-          if ('/majoritems/'+ this.$route.params.operation_id + '/' + categories[i].id === path || '/business_report/' + this.$route.params.operation_id + '/' + categories[i].id === path || path.indexOf('/sensor_log')==0) {
+          if ('/majoritems/'+ this.$route.params.operation_id + '/' + categories[i].id === path) {
             this.activeIndex = index;
             this.activeIndex2 = index2;
             this.activeFlag = true;
@@ -941,13 +936,14 @@ export default {
     setAutoCreate(list) {
       var searchWhere;
       var that = this;
-
-      list.forEach(function(ope){
-        var searchWhere = {"and":[{"operationTypeId": ope.operation_type_id},{"autoCreate":{"eq":"true"}}]};
-        that.onSearch('/companies/' + localStorage.getItem('company_id') + '/report-object-group-definitions/', null, searchWhere, val => {
-          that.autoCreateList.push({"operationTypeId": ope.operation_type_id, "isAutoCreate": val.length > 0 ? true : false});
+      if (list != null){
+        list.forEach(function(ope){
+          var searchWhere = {"and":[{"operationTypeId": ope.operation_type_id},{"autoCreate":{"eq":"true"}}]};
+          that.onSearch('/companies/' + localStorage.getItem('company_id') + '/report-object-group-definitions/', null, searchWhere, val => {
+            that.autoCreateList.push({"operationTypeId": ope.operation_type_id, "isAutoCreate": val.length > 0 ? true : false});
+          });
         });
-      });
+      }
     },
     isAutoCreate(id) {
       const find = this.autoCreateList.find(ele => ele.operationTypeId == id);
@@ -977,6 +973,7 @@ export default {
       // });
       this.getAutoSettingUiIdRequest(localStorage.getItem('buildings_id'));
     }
+    console.log("レポート:"+localStorage.getItem('report_list'));
     this.setAutoCreate(this.menuList.report);
     event.on('login-update', this.updateLogin)
     this.updateLogin();

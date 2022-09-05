@@ -3,10 +3,7 @@
   <div :class="{box: isTablet==null, margin_bottom_0: isTablet==null, t_box: isTablet!=null, margin_top_40: isTablet!=null}">
     <div class="box-header with-border" :class="{display_flex: isTablet==null, box_head: isTablet==null, t_box_head: isTablet!=null}">
       <h3 class="box-title width_max" v-if="isTablet==null"><!--<i class="fa" v-bind:class="param.icon"></i>--> {{param.title}} <small>{{param.title_s}}</small></h3>
-      <!-- <h3 class="box-title data_count" v-if="isTablet==null"> 該当件数: {{count}}件</h3> -->
       <h3 class="t_heading" v-if="isTablet!=null">検索結果</h3>
-      <!-- <h3 class="box-title for_tablet font_20 width_max margin_top_10 margin_left_10" v-if="isTablet!=null"><i class="fa" v-bind:class="param.icon"></i> {{param.title}} <small>{{param.title_s}}</small></h3> -->
-      <!-- <h3 class="box-title for_tablet font_20 data_count margin_top_10 width_400" v-if="isTablet!=null">該当件数: {{count}}件</h3> -->
 
       <div class="box-tools list_button" v-if="onSearch2 && !param.disablePaging && isTablet==null">
         <span class="margin_right_10 vertical_align_sub"><span v-if="count > 0" >{{offset+1}}-</span>{{Math.min(offset+limit,offset+list.length)}}/{{count}}件</span>
@@ -51,6 +48,13 @@
 
     <h3 class="box-title data_count" v-if="isTablet==null"> 該当件数:<span>{{count}}</span>件</h3>
     <p class="box-title for_tablet font_20 data_count margin_top_20 margin_bottom_20 text_align_center" v-if="isTablet!=null">該当件数: {{count}}件</p>
+    <div class="text_align_center margin_top_20 padding_bottom_15" v-if="isTablet==null">
+      <div v-if="param.isIncludeImage" class="btn-group btn_groups">
+        <button v-if="isTablet==null && !isRemoveAdd" type="button" class="btn btn-lg btn_width50 margin_left_20" v-bind:class="{ 'btn-primary': isListMode, 'btn-default': !isListMode }" @click="changeListMode(true)" ><i class="fa fa-list-ul"></i>&nbsp;&nbsp;リスト表示</button>
+        <button v-if="isTablet==null && !isRemoveAdd" type="button" class="btn btn-lg btn_width50 margin_right_20" v-bind:class="{ 'btn-primary': !isListMode,'btn-default': isListMode }" @click="changeListMode(false)" ><i class="fa fa-image"></i>&nbsp;&nbsp;サムネイル表示</button>
+      </div>
+    </div>
+
     <div class="text_align_center margin_top_20 padding_bottom_15" v-if="isTablet!=null">
       <div v-if="param.isIncludeImage" class="btn-group btn_groups">
         <button v-if="isTablet!=null && !isRemoveAdd" type="button" class="btn btn-lg btn_width50 margin_left_20" v-bind:class="{ 'btn-primary': isListMode, 'btn-default': !isListMode }" @click="changeListMode(true)" ><i class="fa fa-list-ul"></i>&nbsp;&nbsp;リスト表示</button>
@@ -233,7 +237,9 @@
         this.isListMode = localStorage.getItem('isListMode') == "true" ? true : false;        
       }
 
-      if (this.$route.path.indexOf('/majoritems') != -1) {
+      if (this.$route.path.indexOf('/majoritems') != -1 || this.$route.path.indexOf('/business_report') != -1) {
+        // 変数が適していないが、business_reportも条件に含める
+        // URIが増えるたびに条件増えると手間なのでコメントで補足
         this.isMajorItem = true;
       } else {
         this.isMajorItem = false;

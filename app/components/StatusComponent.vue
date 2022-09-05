@@ -1,6 +1,6 @@
 <template>
   <!-- <span>{{value | name}}</span> -->
-  <span class="label" v-bind:class="value=='0'?'label-danger':value=='1'?'label-info':value==2?'label-danger':value==3?'label-primary':value==4?'label-success':value==-1?'label-warning':''" style="border-radius: 3px !important;">{{value | name}}</span>
+  <span class="label" v-bind:class="value=='0'?'label_gray':value=='1'?'label-info':value==2?'label-danger':value==3?'label-primary':value==4?'label-success':value==-1?'label-warning':''" style="border-radius: 3px !important;">{{value | name}}</span>
 </template>
 
 <script>
@@ -12,6 +12,8 @@ export default {
   filters: {
     name(val) {
       switch (val) {
+        case "0":
+          return '承認なし';
         case "1":
           return '申請中';
         case "2":

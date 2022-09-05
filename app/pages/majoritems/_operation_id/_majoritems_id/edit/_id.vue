@@ -45,7 +45,7 @@
           </div> -->
           <!-- /.box-header -->
           <div class="box-body no-paddin">
-            <form class="form-horizontal">
+            <form class="form-horizontal" onsubmit="return false;">
               <div class="box-body">
                 <div class="form-group form_box_group" :class="{vertical_layout: isVertical}">
                   <div class="form_box_group_title">
@@ -53,6 +53,15 @@
                   </div>
                   <div class="form_box_group_field">
                     <div class="item-text">{{param.id}}</div>
+                  </div>
+                </div>
+
+                <div class="form-group form_box_group" :class="{vertical_layout: isVertical}" v-if="isHeadquartersMode">
+                  <div class="form_box_group_title">
+                    <label class="control-label">ビル</label>
+                  </div>
+                  <div class="form_box_group_field">
+                    <div class="item-text">ID{{param.building.id}}: {{param.building.name}}</div>
                   </div>
                 </div>
                 
@@ -96,7 +105,7 @@
                         <label class="input_file_head">
                           <input id="video_select" class="col-sm-8 control-label" style="display:none" type="file" accept="video/*" @change="onAddVideoFile">
                           <button type="button" class="input_file_button" @click="onVideoSelectFileClick">ファイル選択</button>
-                          <p class="input_file_notes">ファイル容量5MB以下 / mp4形式に対応</p>
+                          <p class="input_file_notes">ファイル容量5MB以下 / mp4,mov形式に対応</p>
                         </label>
 
                         <div class="input_file_image margin_top_20 margin_bottom_10">
@@ -270,6 +279,8 @@ export default {
   },
   data() {
     return {
+      buildings: [],
+      isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
       api: '/report-objects',
       majorItemId: this.$route.params.majoritems_id,
       operationId: this.$route.params.operation_id,
@@ -302,7 +313,8 @@ export default {
         tmpUpdatedAt: '',
         columns: [],
         floors: [],
-        display_floors: ""
+        display_floors: "",
+        building: '',
       },
       language: {
         language: 'Japanese',
@@ -471,9 +483,14 @@ export default {
     getMajoritemsData(api) {
       this.onSearch(api, null, null, (val) => {
         // this.param.title = val.reportObjectDefinition.name //大項目名
-        const columns_list = []
+        const columns_list = [];
         var cnt = 0
         var daily_data = '';
+        const buildingId = val.reportObject.buildingId;
+        localStorage.setItem('buildings_id',buildingId);
+        this.buildings = JSON.parse(localStorage.getItem('building_list'));
+        this.param.building = this.buildings.find(buildingsInfo => buildingsInfo.id == buildingId);
+
         val.reportObjectDefinition.reportFieldDefinitions.forEach(function(obj) {
           var report = val.reportObject.reportFields.find( (v) => v.reportFieldDefinitionId === obj.id )
           if (report==null){

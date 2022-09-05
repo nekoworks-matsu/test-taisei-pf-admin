@@ -60,6 +60,15 @@
                     <div class="item-text">{{param.id}}</div>
                   </div>
                 </div>
+
+                <div class="form-group form_box_group" :class="{vertical_layout: isVertical}" v-if="isHeadquartersMode">
+                  <div class="form_box_group_title">
+                    <label class="control-label">ビル</label>
+                  </div>
+                  <div class="form_box_group_field">
+                    <div class="item-text">ID{{param.building.id}}: {{param.building.name}}</div>
+                  </div>
+                </div>
                 
                 <div class="form-group form_box_group" v-if="col.type!='hiddenColmun'" v-for="(col, index) in param.columns" :class="{vertical_layout: isVertical}">
                   <div class="form_box_group_title" v-if="!col.title&&col.type!='threeTextInput'&&col.type!='hiddenColmun'&&col.type!='image'" >
@@ -231,6 +240,7 @@ import 'video.js/dist/video-js.css';
 export default {
   data() {
     return {
+      isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
       api: '/report-objects',
       majorItemId: this.$route.params.majoritems_id,
       operationId: this.$route.params.operation_id,
@@ -262,7 +272,8 @@ export default {
         tmpUpdatedAt: '',
         columns: [],
         floors: [],
-        display_floors: ""
+        display_floors: "",
+        building: '',
       },
       language: {
         language: 'Japanese',
@@ -403,6 +414,11 @@ export default {
         const columns_list = []
         var cnt = 0
         var daily_data = '';
+        const buildingId = val.reportObject.buildingId;
+        localStorage.setItem('buildings_id',buildingId);
+        const buildings = JSON.parse(localStorage.getItem('building_list'));
+        this.param.building = buildings.find(buildingsInfo => buildingsInfo.id == buildingId);
+
         val.reportObjectDefinition.reportFieldDefinitions.forEach(function(obj) {
           var report = val.reportObject.reportFields.find( (v) => v.reportFieldDefinitionId === obj.id )
           if (report==null){
@@ -593,7 +609,8 @@ export default {
               ret_value = ''
           }
           cnt++
-        }.bind(this))
+        }.bind(this));
+
         this.getModalViewContent();
 
         columns_list.sort(function(a,b){

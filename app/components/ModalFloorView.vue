@@ -11,6 +11,10 @@
         </div>
         <div class="modal-body clearfix display_flex align_item_normal">
           <table border="1" class="no_border width_150" style="height: 1px;">
+            <div class="no_border" style="width:150px; display: flex; margin-bottom: 10px;">
+              <button type="button" class="btn btn-default margin_right_10" @click="onAllChangeCheckbox(true)">全選択</button>
+              <button type="button" class="btn btn-default" @click="onAllChangeCheckbox(false)">全解除</button>
+            </div>
             <tbody>
               <tr class="selectradio selectradio_inline" v-for="index in 5" v-if="getFloorsInfo(index)!=null">
                 <td class="selectradio_item no_border" style="border-bottom: medium solid #ddd !important;">
@@ -22,10 +26,10 @@
           </table>
           <div class="floor_width">
             <label class="control control_checkbox" style="margin-left: 40px" :hidden="isFloor(i)" v-for="i in param">
-              <input type="checkbox" v-model="item.operations[i.id]" v-bind:name="id" v-bind:id="i.id" checked v-if="i.checked">
-              <input type="checkbox" v-model="item.operations[i.id]" v-bind:name="id" v-bind:id="i.id" v-if="!i.checked">
+              <input type="checkbox" v-model="item.operations[i.id]" v-bind:name="id" v-bind:id="'floor_' + i.id" checked v-if="i.checked">
+              <input type="checkbox" v-model="item.operations[i.id]" v-bind:name="id" v-bind:id="'floor_' + i.id" v-if="!i.checked">
               <div class="control_indicator" style="margin-top: 20px"></div>
-              <div class="item-text font_normal padding_top_40 margin_left_0" :for="'floor_' + i.name" :hidden="isFloor(i)" style="min-width: 30px;">{{i.name}}<span v-if="type!=4">F</span></div>
+              <div class="item-text font_normal padding_top_40 margin_left_0" :for="'floor_' + i.name" :hidden="isFloor(i)" style="min-width: 30px;">{{i.name}}<span v-if="type!=5">F</span></div>
             </label>
           </div>
         </div>
@@ -170,6 +174,39 @@
           return 4;
         } else {
           return 5;
+        }
+      },
+      onAllChangeCheckbox(isCheck) {
+        if (this.floors.length == 1 && this.floors[0].type == undefined) {
+          this.floors.length = 0;
+        }
+        // var isCheck = document.getElementById("all_change").checked;
+        if (this.type != 8) {
+          this.$nextTick(function() {
+            this.floors.forEach(value => {
+              var find, ele, type;
+              if (this.type == 1) {
+                ele = document.getElementById('floor_' + value.id);
+                type = 2;
+              } else if (this.type >= 2 && this.type <= 7) {
+                ele = document.getElementById('floor_' + value.id);
+                type = 1;
+              }
+              ele.checked = isCheck;
+            })
+          });
+        } else {
+          var list, filter;
+          this.$nextTick(function() {
+            list = document.getElementsByName('floors_checkbox');
+            list.forEach(value => {
+              value.checked = isCheck;
+            });
+            filter = this.floors.filter(val => val.type == 3);
+            filter.forEach(value => {
+              value.activated = isCheck;
+            });
+          });
         }
       },
       init() {

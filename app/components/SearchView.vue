@@ -108,6 +108,15 @@ export default {
       var searchItem = localStorage.getItem('search_item')
       return JSON.parse(searchItem)
     },
+    // 仮処理: 承認フラグ
+    convertReportStatus(val) {
+      for (var i = 0; i < val.length; i++) {
+        if (val[i].buildingId === 1) {
+          val[i]["approveReport"] = {'reportStatus': '0'};
+        }
+      }
+      return val;
+    },
     search(where, queryItem) {
       if (where == undefined) {
         if (this.param.searchWhere) {
@@ -148,7 +157,8 @@ export default {
           })
         } else {
           this.onSearch(this.param.api, this.getFilterParam(this.offset, where, this.order), where, (val) => {
-            this.items = val
+            // 仮処理: 承認フラグ
+            this.items = this.convertReportStatus(val);
             this.$nextTick(function() {
               this.itemsWatch && setTimeout(() => this.itemsWatch(val), 1)
             })

@@ -91,7 +91,7 @@
                 </div>
               </div>
 
-              <div class="form-group form_box_group">
+              <div class="form-group form_box_group" v-if="isAppry">
                 <div class="form_box_group_title">
                   <label class="control-label">ステータス</label>
                 </div>
@@ -218,7 +218,7 @@
               </div>
 
               <!-- 承認履歴動的 -->
-              <div v-if="item.status">
+              <div v-if="item.status&&isAppry">
                 <div class="box-header with-border margin_bottom_20">
                   <h2 class="box-title font_18">承認申請履歴</h2>
                 </div>
@@ -399,6 +399,7 @@ export default {
       buildingTemplates: [],
       businessStartTime: '',
       sortSettings: [],
+      isAppry: this.toBoolean(localStorage.getItem('is_apply')),
       language:{
         language: 'Japanese', 
         months: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'], 
@@ -624,7 +625,12 @@ export default {
           columns.push({value: this.df2(val[i].attendedAt)});
           columns.push({value: this.df2(val[i].leftAt)});
           columns.push({value: this.getWorkShift(val[i].workShift)});
-          columns.push({value: val[i].member.name});
+          var memberName = "---";
+          if (val[i].member != null) {
+            memberName = val[i].member.name;       
+          }
+          columns.push({value: memberName });
+
           data_list.push({path, columns});
         }
         attendances = {label: '勤務スタッフ', columns: [{ name: "出勤時間" },{ name: "退勤時間" },{ name: "シフト" },{ name: "メンバー名" }], data_list};
@@ -1017,19 +1023,23 @@ export default {
       var reportObjectGroupDefinitions = [];
       var reportObject;
       var find;
-      operationCategoryContents.forEach((content) => {
-        find = reportObjectGroupDefinitions.find(val => val.id == content.reportObjectGroupDefinitionId);
-        if (find == undefined) {
-          var sort = 999;
-          if (content.reportObjectGroupDefinition.reportObjectDefinitions != null) {
-            if (content.reportObjectGroupDefinition.reportObjectDefinitions.length > 0) {
-              sort = content.reportObjectGroupDefinition.reportObjectDefinitions[0].sort;
+
+      if (operationCategoryContents != null) {
+        operationCategoryContents.forEach((content) => {
+          find = reportObjectGroupDefinitions.find(val => val.id == content.reportObjectGroupDefinitionId);
+          if (find == undefined) {
+            var sort = 999;
+            if (content.reportObjectGroupDefinition.reportObjectDefinitions != null) {
+              if (content.reportObjectGroupDefinition.reportObjectDefinitions.length > 0) {
+                sort = content.reportObjectGroupDefinition.reportObjectDefinitions[0].sort;
+              }
             }
+            content.reportObjectGroupDefinition.sort = sort;          
+            reportObjectGroupDefinitions.push(content.reportObjectGroupDefinition);
           }
-          content.reportObjectGroupDefinition.sort = sort;          
-          reportObjectGroupDefinitions.push(content.reportObjectGroupDefinition);
-        }
-      });
+        });
+      }
+      
       reportObjectGroupDefinitions.sort(function(a,b){
         if(a.sort < b.sort) return -1;
         if(a.sort > b.sort) return 1;

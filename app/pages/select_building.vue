@@ -139,7 +139,10 @@ export default {
               content.reportObjectGroupDefinition.sort = content.sort ?? sort;
               const reportObjectDefinitions = [];
               content.reportObjectGroupDefinition.reportObjectDefinitions.forEach((defenitions) => {
-                var definitionFound = disabled.find(val => val == defenitions.id);
+                var definitionFound = false;
+                if (disabled != null) {
+                  definitionFound = disabled.find(val => val == defenitions.id);
+                }
                 if (!definitionFound) {
                   reportObjectDefinitions.push(defenitions);
                 }
@@ -223,21 +226,24 @@ export default {
           return 0;
         });
         localStorage.setItem('report_list', JSON.stringify(report_hierarchy));
-        this.saveTemplateListToLocalStorage(val);
-        // this.businessReportDefinitionsRequest(val);
+        // this.saveTemplateListToLocalStorage(val);
+        this.businessReportDefinitionsRequest(val);
       });
     },
     /**
      * 作業報告書情報取得
      */
     businessReportDefinitionsRequest(val) {
-      this.onSearch('/business-report-group-definitions', {companyId: parseInt(localStorage.getItem('company_id')), buildingId: this.selectedBuilding.id}, null, (res) => {
+      this.onSearch('/business-report-group-definitions?companyId='+parseInt(localStorage.getItem('company_id'))+"&buildingId="+this.selectedBuilding.id, null, null, (res) => {
         var businessReportGroupDefinitions = [];
         res.forEach((val, index) => {
-          businessReportGroupDefinitions.push({id: val.id, name: val.name, operationTypeId: val.operationTypeId, businessReportDefinitions: []});
-          val.businessReportDefinitions.forEach((val2) => {
-            businessReportGroupDefinitions[index].businessReportDefinitions.push({id: val2.id, name: val2.name})
-          })
+          if (val.buildingHasBusinessReports != null) {
+            const businessReportDefinitions = [];
+            val.buildingHasBusinessReports.forEach((val2) => {
+              businessReportDefinitions.push({id: val2.id, name: val2.businessReportDefinition.name})
+            })
+            businessReportGroupDefinitions.push({id: val.id, name: val.name, operationTypeId: val.operationTypeId, businessReportDefinitions: businessReportDefinitions});
+          }
         })
         localStorage.setItem('business_report_group_definitions', JSON.stringify(businessReportGroupDefinitions));
         this.saveTemplateListToLocalStorage(val);
@@ -260,7 +266,7 @@ export default {
     createMenulistRequest(api) {
       let disalbedApi = '/companies/' + localStorage.getItem('company_id') + '/disabled-group-contents';
       let disalbedParam = { where: {buildingId: localStorage.getItem('buildings_id')}};
-      this.onSearch(disalbedApi, disalbedParam, null, (disables) => {      
+      this.onSearch(disalbedApi, disalbedParam, null, disables => {      
         var disabledDefinitions = [];
         disables.forEach(defitnitions => {
           disabledDefinitions = disabledDefinitions.concat(defitnitions.reportObjectDefinitionIds);
@@ -324,6 +330,13 @@ export default {
       localStorage.setItem('buildings_name', this.selectedBuilding.value);
       localStorage.setItem("is_headquarters_mode", false);
 
+      //  仮処理: 承認フラグ
+      if (this.selectedBuilding.id == 1) {
+        localStorage.setItem("is_apply", false);
+      } else {
+        localStorage.setItem("is_apply", true);
+      }
+
       const url = process.env.API_SERVER + '/access-logs/select-building';
       var send_data = { buildingId: this.selectedBuilding.id };
       this.req(url, 'post', send_data, (err, res) => {
@@ -370,14 +383,17 @@ export default {
     onHeadquartersMode() {
       localStorage.removeItem('search_item');
       localStorage.setItem("is_headquarters_mode", true);
-      var parameter = {include: [{relation: 'operationType'}]};
+      localStorage.setItem('business_start_time', moment("00:00:00", 'HH:mm:ss').add(9, 'h').format('HH:mm:ss'));
+
+      var parameter = {include: [{relation: 'operationType'},{relation: 'operationCategoryContents',scope:{include:[{relation: 'reportObjectGroupDefinition',scope:{include:[{relation: 'reportObjectDefinitions'}]}}]}}] };
       this.onSearch('/companies/'+localStorage.getItem("company_id")+'/operation-categories', parameter, null, val => {
         var reportList = [];
         var find;
+        var that = this;
         val.forEach(function(operation_category){
           find = reportList.find(list => list.operation_type_id == operation_category.operationTypeId);
           if (find == undefined) {
-            reportList.push({operation_type_id: operation_category.operationTypeId, id: operation_category.id, name: operation_category.reportName, operation_name: operation_category.operationType.name, path: "/report/" + operation_category.operationTypeId})
+            reportList.push({operation_type_id: operation_category.operationTypeId, id: operation_category.id, name: operation_category.reportName, operation_name: operation_category.operationType.name, path: "/report/" + operation_category.operationTypeId, majoritems: that.convertReportObjectDefinitions(operation_category.operationCategoryContents,null)});
           } 
         });
 

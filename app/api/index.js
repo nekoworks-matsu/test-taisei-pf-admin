@@ -77,6 +77,8 @@ router.post('/pdf', (req, res) => {
       buildingOwner = ' '
     }
 
+    const reportInfo = {'report_title': report_title, 'buildingName': buildingName, 'rerport_day': rerport_day, 'categoryList': categoryList, 'buildingOwner': buildingOwner, 'approver':approver, 'status': status, 'report_header': null, 'sortSettings': sortSettings};
+
     const url = env.API_SERVER + '/reports/' + report_id
     if (req.body.isApproval == 'true') {
       allMembers = JSON.parse(req.body.allMembers)
@@ -88,10 +90,10 @@ router.post('/pdf', (req, res) => {
         .set('Authorization', 'Bearer ' + req.body.token)
         .send()
         .end((err, res_1) => {
-          generateApprovalPDF(res, req)
+          generateApprovalPDF(res, req, reportInfo)
         })
     } else {
-      getReportInfoRequest(url, res, req)
+      getReportInfoRequest(url, res, req, reportInfo)
     }
   } catch (e) {
     res.redirect('/login')
@@ -142,8 +144,9 @@ router.post('/monthly_report_pdf', (req, res) => {
     console.log(e)
   }
 })
-function generateApprovalPDF(res, req) {
+function generateApprovalPDF(res, req, reportInfo) {
   report_header = JSON.parse(req.body.header)
+  reportInfo.report_header = JSON.parse(req.body.header)
   getApprovalAttendances(
     JSON.parse(req.body.approveAttendance),
     req.body.label_switch
@@ -158,7 +161,7 @@ function generateApprovalPDF(res, req) {
   )
   const imageDownload = async () => {
     await beforeDownload()
-    out_pdf(res, req.body.date.replace(/\//g, ''))
+    out_pdf(res, reportInfo)
     list = []
     report_header = {}
     imageList = []
@@ -169,13 +172,14 @@ function generateApprovalPDF(res, req) {
   imageDownload()
 }
 
-function getReportInfoRequest(url, res, req) {
+function getReportInfoRequest(url, res, req, reportInfo) {
   request
     .get(url)
     .set('Authorization', 'Bearer ' + req.body.token)
     .send()
     .end((err, res_1) => {
       if (res_1 && res_1.ok) {
+        reportInfo.report_header = res_1.body.report;
         report_header = res_1.body.report
 
         const url_2 =
@@ -203,7 +207,7 @@ function getReportInfoRequest(url, res, req) {
               )
               const imageDownload = async () => {
                 await beforeDownload()
-                out_pdf(res, req.body.date.replace(/\//g, ''))
+                out_pdf(res, reportInfo)
                 list = []
                 report_header = {}
                 imageList = []
@@ -439,7 +443,6 @@ function out_monthly_report_pdf(req, res) {
   for (var i = 0; i < chartList.length; i++) {
     var chart = chartList[i]
     if (chart.appear) {
-      console.log('現在:' + i)
       if (doc.y >= 580) {
         // NOTE:改ページ判定
         writePageNumber()
@@ -460,7 +463,6 @@ function out_monthly_report_pdf(req, res) {
       doc.x = IMAGE_MARGIN
       var base64Image = base64Images[i]
       if (base64Image != null) {
-        console.log('画像あり:' + i)
         doc.image(base64Image, doc.x, doc.y, { width: IMAGE_WIDTH })
       }
 
@@ -760,7 +762,7 @@ function out_monthly_report_pdf(req, res) {
   doc.end()
 }
 
-function out_pdf(res_pdf, rerport_day) {
+function out_pdf(res_pdf, reportInfo) {
   var max_y = 0
   var pageNumber = 1
   var countFlag = false
@@ -769,7 +771,7 @@ function out_pdf(res_pdf, rerport_day) {
     size: [841.89, 595.28],
     margins: { top: 50, bottom: 50, left: 50, right: 50 }
   })
-  let filename = buildingName + '_' + report_title + '_' + rerport_day
+  let filename = reportInfo.buildingName + '_' + reportInfo.report_title + '_' + reportInfo.rerport_day
   filename = encodeURIComponent(filename) + '.pdf'
   res_pdf.setHeader(
     'Content-disposition',
@@ -778,15 +780,15 @@ function out_pdf(res_pdf, rerport_day) {
   res_pdf.setHeader('Content-type', 'application/pdf; charset=utf-8')
   doc.font('./static/fonts/meiryo.ttf')
   //メタデータ設定
-  doc.info.Title = report_title
+  doc.info.Title = reportInfo.report_title
   doc.info.Author = 'Taisei'
-  doc.info.Keywords = report_title
+  doc.info.Keywords = reportInfo.report_title
   doc.info.ModDate = new Date()
   doc.pipe(res_pdf)
   const LINE_TO = 823
   //NOTE:タイトル設定
   var dt = new Date(Date.now())
-  doc.fontSize(18).text(buildingName + '   ' + report_title, pdfLeftMargin, 19)
+  doc.fontSize(18).text(buildingName + '   ' + reportInfo.report_title, pdfLeftMargin, 19)
   doc.fontSize(10).text('大成株式会社', 620, 15, { width: 200, align: 'right' })
   doc
     .fontSize(10)
@@ -805,7 +807,7 @@ function out_pdf(res_pdf, rerport_day) {
   doc.font('./static/fonts/meiryo-bold.ttf')
   doc.fontSize(8).text('ID', 0, temp_y, { width: 200, align: 'right' })
   doc.font('./static/fonts/meiryo.ttf')
-  doc.fontSize(8).text(report_header.id, header_text_x, temp_y, {
+  doc.fontSize(8).text(reportInfo.report_header.id, header_text_x, temp_y, {
     width: 610,
     align: 'left'
   })
@@ -818,7 +820,7 @@ function out_pdf(res_pdf, rerport_day) {
   doc.font('./static/fonts/meiryo-bold.ttf')
   doc.fontSize(8).text('報告日', 0, temp_y, { width: 200, align: 'right' })
   doc.font('./static/fonts/meiryo.ttf')
-  doc.fontSize(8).text(df3(report_header.reportedAt), header_text_x, temp_y, {
+  doc.fontSize(8).text(df3(reportInfo.report_header.reportedAt), header_text_x, temp_y, {
     width: 610,
     align: 'left'
   })
@@ -833,7 +835,7 @@ function out_pdf(res_pdf, rerport_day) {
   doc.font('./static/fonts/meiryo.ttf')
   doc
     .fontSize(8)
-    .text(status, header_text_x, temp_y, { width: 610, align: 'left' })
+    .text(reportInfo.status, header_text_x, temp_y, { width: 610, align: 'left' })
   doc
     .moveTo(pdfLeftMargin, doc.y)
     .lineTo(LINE_TO, doc.y)
@@ -843,7 +845,7 @@ function out_pdf(res_pdf, rerport_day) {
   doc.font('./static/fonts/meiryo-bold.ttf')
   doc.fontSize(8).text('天気', 0, temp_y, { width: 200, align: 'right' })
   doc.font('./static/fonts/meiryo.ttf')
-  doc.fontSize(8).text(report_header.weather, header_text_x, temp_y, {
+  doc.fontSize(8).text(reportInfo.report_header.weather, header_text_x, temp_y, {
     width: 610,
     align: 'left'
   })
@@ -860,7 +862,7 @@ function out_pdf(res_pdf, rerport_day) {
   doc.font('./static/fonts/meiryo.ttf')
   doc
     .fontSize(8)
-    .text(buildingOwner, header_text_x, temp_y, { width: 610, align: 'left' })
+    .text(reportInfo.buildingOwner, header_text_x, temp_y, { width: 610, align: 'left' })
   doc
     .moveTo(pdfLeftMargin, doc.y)
     .lineTo(LINE_TO, doc.y)
@@ -870,7 +872,11 @@ function out_pdf(res_pdf, rerport_day) {
   doc.font('./static/fonts/meiryo-bold.ttf')
   doc.fontSize(8).text('報告者', 0, temp_y, { width: 200, align: 'right' })
   doc.font('./static/fonts/meiryo.ttf')
-  doc.fontSize(8).text(report_header.member.name, header_text_x, temp_y, {
+  var memberName = "---";
+  if (reportInfo.report_header.member != null) {
+    memberName = reportInfo.report_header.member.name;       
+  }
+  doc.fontSize(8).text(memberName, header_text_x, temp_y, {
     width: 610,
     align: 'left'
   })
@@ -886,7 +892,7 @@ function out_pdf(res_pdf, rerport_day) {
   doc
     .fontSize(8)
     .text(
-      report_header.notice == null ? ' ' : replaceSpace(report_header.notice),
+      reportInfo.report_header.notice == null ? ' ' : replaceSpace(reportInfo.report_header.notice),
       header_text_x,
       temp_y,
       { width: 610, align: 'left' }
@@ -903,7 +909,7 @@ function out_pdf(res_pdf, rerport_day) {
   doc
     .fontSize(8)
     .text(
-      report_header.comment == null ? ' ' : replaceSpace(report_header.comment),
+      reportInfo.report_header.comment == null ? ' ' : replaceSpace(reportInfo.report_header.comment),
       header_text_x,
       temp_y,
       { width: 610, align: 'left' }
@@ -920,7 +926,7 @@ function out_pdf(res_pdf, rerport_day) {
   doc.font('./static/fonts/meiryo.ttf')
   doc
     .fontSize(8)
-    .text(approver, header_text_x, temp_y, { width: 610, align: 'left' })
+    .text(reportInfo.approver, header_text_x, temp_y, { width: 610, align: 'left' })
   doc
     .moveTo(pdfLeftMargin, doc.y)
     .lineTo(LINE_TO, doc.y)
@@ -1032,31 +1038,33 @@ function out_pdf(res_pdf, rerport_day) {
       for (var o = 0; o < categoryList.length; o++) {
         for (var p = 0; p < categoryList[o].majoritems.length; p++) {
           let objc = categoryList[o].majoritems[p]
-          objc.reportObjectDefinitions.forEach(function(obj) {
-            if (list[i].id == obj.id) {
-              const include = groupNames.find((v) => v === objc.name)
-              var groupName = ''
-              if (include === undefined && objc.name != 'ugo業務') {
-                groupNames.push(objc.name)
-                groupName = objc.name
-              }
-              if (groupName != '') {
-                if (doc.y >= 490) {
-                  // NOTE:改ページ判定
-                  writePageNumber()
-                  doc.addPage()
-                  doc.y = 50
+          if (objc.reportObjectDefinitions != null) {
+            objc.reportObjectDefinitions.forEach(function(obj) {
+              if (list[i].id == obj.id) {
+                const include = groupNames.find((v) => v === objc.name)
+                var groupName = ''
+                if (include === undefined && objc.name != 'ugo業務') {
+                  groupNames.push(objc.name)
+                  groupName = objc.name
                 }
-                doc.fontSize(15)
-                doc.text(groupName, pdfLeftMargin, doc.y)
-                doc
-                  .moveTo(pdfLeftMargin - 0.5, doc.y)
-                  .lineTo(LINE_TO, doc.y)
-                  .stroke()
-                doc.y += 15
+                if (groupName != '') {
+                  if (doc.y >= 490) {
+                    // NOTE:改ページ判定
+                    writePageNumber()
+                    doc.addPage()
+                    doc.y = 50
+                  }
+                  doc.fontSize(15)
+                  doc.text(groupName, pdfLeftMargin, doc.y)
+                  doc
+                    .moveTo(pdfLeftMargin - 0.5, doc.y)
+                    .lineTo(LINE_TO, doc.y)
+                    .stroke()
+                  doc.y += 15
+                }
               }
-            }
-          })
+            })
+          }
         }
       }
     }
@@ -2639,7 +2647,11 @@ function getAttendances(val, label_switch) {
       var workShifts = ['日勤', '宿直', '夜勤', '午前', '午後']
       var workShift = workShifts[parseInt(val[i].workShift) - 1]
       columns.push({ value: workShift })
-      columns.push({ value: val[i].member.name })
+      var memberName = "---";
+      if (val[i].member != null) {
+        memberName = val[i].member.name;       
+      }
+      columns.push({value: memberName });
       data_list.push({ path, columns })
     }
     attendances = {

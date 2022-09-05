@@ -45,9 +45,8 @@
                     <template v-if="form.type==2">
                       <label class="col-sm-2 control-label">{{form.name}}</label>
                       <div class="col-sm-10">
-                        <div>
+                        <div v-if="!isHeadquartersMode">
                           <input class="checkbox_position" type="radio" name="searchRadios" id="searchRadios1" value="option1" v-model="item.radioButtonState">
-                          <!-- <label class="search_type" for="searchRadios1">年月日</label> -->
                           <div class="majoritem_search_ui width_200">
                             <div class="date_select_btn">
                               <button type="button" class="btn btn-default btn_width50" @click="setDay(-7)"><i class="fa fa-angle-double-left"></i><span>　1週間前</span></button>
@@ -64,9 +63,9 @@
                           </div>
                         </div>
                         <div class="margin_top_10">
-                          <input class="checkbox_position" type="radio" name="searchRadios" id="searchRadios2" value="option2" v-model="item.radioButtonState">
+                          <input class="checkbox_position" type="radio" name="searchRadios" id="searchRadios2" value="option2" v-model="item.radioButtonState" v-if="!isHeadquartersMode">
                           <!-- <label class="search_type padding_top_5" for="searchRadios2">範囲</label> -->
-                          <div class="majoritem_search_ui display_flex">
+                          <div class="majoritem_search_ui" v-bind:class="{display_flex:!isHeadquartersMode, width_200: isHeadquartersMode}">
                             <div class="two_date_picker_search_start">
                               <vuejs-datepicker class="form-control two_date_picker width_200" :value="startShowAt.value" :clear-button="true" :format="DatePickerFormat" :language="language" name="datepicker" id="startShowAt" @input="inputDate($event, form.fieldIndex, form.type, true ,form.id)" v-bind:placeholder="'カレンダーから選ぶ'"></vuejs-datepicker>
                               <div class="display_flex margin_top_5">
@@ -113,6 +112,17 @@
                       </div>
                     </template>
                   </div>
+                  <div class="form-group" v-if="isHeadquartersMode">
+                    <template>
+                      <label class="col-sm-2 control-label">ビル</label>
+                      <div class="col-sm-10">
+                        <select class="form-control" v-model="param.buildingId">
+                          <option value=""></option>
+                          <option v-bind:value="building.id" v-for="building in buildingList">{{building.name}}</option>
+                        </select>
+                      </div>
+                    </template>
+                  </div>
                 </div>
                 <!-- /.box-body -->
                 <div class="box-footer clearfix">
@@ -152,6 +162,8 @@ import ModalAlertView from '~/components/ModalAlertView'
 export default {
   data() {
     return {
+      buildingList:[],
+      isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
       isRemoveAdd: false,
       end_hh:'-1',
       end_mm:'-1',
@@ -193,11 +205,13 @@ export default {
         yearSuffix: '年'
       },
       param: {
-        api: '/buildings/' + localStorage.getItem('buildings_id') + '/report-objects',
+        api: '',
         search_field:0,
         search_label:'',
+        building: '',
         mm_op:[],
         hh_op:[],
+        buildingId: '',
         search_item:{},
         title: this.getMajorItemsTitle(JSON.parse(localStorage.getItem('report_list'))),
         operation: this.getOperationName(JSON.parse(localStorage.getItem('report_list'))),
@@ -324,9 +338,10 @@ export default {
         this.setMajoritemsTitle();
         this.setMembers();
         this.$nextTick(function() {
+          this.isHeadquartersMode = this.toBoolean(localStorage.getItem('is_headquarters_mode'));
           this.error = '';
           this.start_hh = Number(localStorage.getItem("business_start_time").slice(0, 2));
-          this.start_mm = Number(localStorage.getItem("business_start_time").slice(3, 5));
+          this.start_mm = Number(localStorage.getItem("business_start_time").slice(3, 5));            
           this.startShowAt.value = new Date();
           var endDate = moment(this.item.searchDate, "YYYY-MM-DD").format("YYYY-MM-DD") + ' ' + localStorage.getItem("business_start_time");
           endDate = moment(endDate).add({ hours : 23, minutes : 59 });
@@ -334,10 +349,18 @@ export default {
           this.end_hh = endDate.get('hour');
           this.end_mm = endDate.get('minute');
           this.param.api = '/report-objects/search-by-business-date';
+
+
+          if (this.isHeadquartersMode){
+            this.param.api = '/report-objects';
+            this.buildingList = JSON.parse(localStorage.getItem('building_list'));
+          }
           this.input = {};
-          if (document.forms.searchForm.searchRadios1 != undefined) {
-            this.item.radioButtonState = 'option1'
-            document.forms.searchForm.searchRadios1.checked = true;
+          if (!this.isHeadquartersMode) {
+            if (document.forms.searchForm.searchRadios1 != undefined) {
+              this.item.radioButtonState = 'option1'
+              document.forms.searchForm.searchRadios1.checked = true;
+            }
           }
           this.search();
         })
@@ -349,9 +372,13 @@ export default {
      * ビルごとのメンバー名取得
      */
     setMembers() {
-      this.onSearch('/buildings/' + localStorage.getItem('buildings_id') +'/members', null, null, (val) => {
-        this.members = val
-      })
+
+      this.isHeadquartersMode = this.toBoolean(localStorage.getItem('is_headquarters_mode'));
+      if (!this.isHeadquartersMode){
+        this.onSearch('/buildings/' + localStorage.getItem('buildings_id') +'/members', null, null, (val) => {
+          this.members = val
+        })
+      }
     },
     /**
      * whereのリクエスト内容取得
@@ -463,7 +490,9 @@ export default {
         sendData.order = [{ reportFieldDefinitionId: id, direction: order_type, inputType: type }]
       }
       if (order != undefined && order.length != 0) {
-        sendData.order = order;
+        if (Object.keys(order[0]).length) {
+          sendData.order = order;
+        }
       }
       if (api == "/report-objects/search-by-business-date") {
         // NOTE: 入力年月日
@@ -473,6 +502,13 @@ export default {
       } else {
         sendData.inputType = 2 //日付検索
       }
+
+     if (this.isHeadquartersMode){
+        var buildings = JSON.parse(localStorage.getItem('building_list'));
+        const buildingIds = buildings.map(building => building.id);
+        sendData.buildingIds = buildingIds;
+      }
+
       sendData.conditions = this.setConditions(api, startShowAt, endShowAt, searchField);
       return sendData;
     },
@@ -495,6 +531,9 @@ export default {
     getCellList(reportFieldDefinitions) {
       var columnsList = [];
       var imageFlag = false;
+      if (this.isHeadquartersMode){
+        columnsList.push({name: 'ビル名', column: 'building'});
+      }
       reportFieldDefinitions.forEach(function(obj) {
         if(obj.displayIndex != null ){
           var columns = { name: obj.name, column: 'column' + obj.fieldIndex, type: 'datetime', fieldIndex: obj.fieldIndex, displayIndex: obj.displayIndex, types: obj.type ,id: obj.id ,reportExtractField: obj.reportExtractField}
@@ -572,6 +611,7 @@ export default {
      * 表示項目取得
      */
     getItemList(reportObjects, columnsList, mems) {
+      const self = this;
       const item_list = [];
       let item_value = {};
       var that = this;
@@ -606,6 +646,11 @@ export default {
             }
           })
         })
+         if (self.isHeadquartersMode){
+          var buildings = JSON.parse(localStorage.getItem('building_list'));
+          const building = buildings.find(building => building.id == report_obj.buildingId);
+          item_value["building"] = building.name;
+        }
         item_list.push(item_value);
         item_value = {};
       })
@@ -661,6 +706,12 @@ export default {
           var searchDate = moment(this.item.searchDate, "YYYY-MM-DD").format("YYYY-MM-DD");
           count_cond.businessDate = searchDate;
           count_cond.buildingId = localStorage.getItem("buildings_id");
+        }
+
+        if (this.isHeadquartersMode){
+          var buildings = JSON.parse(localStorage.getItem('building_list'));
+          const buildingIds = buildings.map(building => building.id);
+          count_cond.buildingIds = buildingIds;
         }
         if (!this.param.list.disablePaging) {
           this.onCount(this.param.api, count_cond, (count) => {
@@ -839,7 +890,7 @@ export default {
       if (JSON.parse(searchItem) != null) {
         this.param.api = JSON.parse(searchItem).api;
         this.input = JSON.parse(searchItem).data;
-        if (this.param.api == '/buildings/' + localStorage.getItem('buildings_id') + '/report-objects') {
+        if (!this.param.api.includes('/search-by-business-date')) {
           this.item.radioButtonState = 'option2';
           this.startShowAt = JSON.parse(searchItem).start.date;
           this.startShowAt.value = (JSON.parse(searchItem).start.date.value == undefined) ? null : new Date(JSON.parse(searchItem).start.date.value);
@@ -873,7 +924,13 @@ export default {
   created() {
     const key = (parseInt(this.$route.params.operation_id ) == 1) ? "Security:ReportObject:search" : "Cleaning:ReportObject:search";
     this.checkDisplayPermission(key,() => {
+      this.isHeadquartersMode = this.toBoolean(localStorage.getItem('is_headquarters_mode'));
+      this.setMembers();
       this.param.api = '/report-objects/search-by-business-date';
+      if (this.isHeadquartersMode){
+        this.param.api = '/report-objects';
+        this.buildingList = JSON.parse(localStorage.getItem('building_list'));
+      }
       this.setMajoritemsTitle();
       this.setSearchItem();
       var endDate = moment(this.item.searchDate, "YYYY-MM-DD").format("YYYY-MM-DD") + ' ' + localStorage.getItem("business_start_time");
@@ -896,12 +953,16 @@ export default {
     },
     item: {
       handler: function() {
-        if (this.item.radioButtonState == "option1") {
+        if (this.isHeadquartersMode){
+          this.param.api = '/report-objects';
+          this.buildingList = JSON.parse(localStorage.getItem('building_list'));
+        }else if (this.item.radioButtonState == "option1") {
           this.param.api = '/report-objects/search-by-business-date';
-          this.search();
+          // this.search();
         } else {
           this.param.api = '/buildings/' + localStorage.getItem('buildings_id') + '/report-objects';
         }
+        
       },
       deep: true
     }

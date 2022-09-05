@@ -63,7 +63,7 @@
                     <label class="control-label">出勤時間</label>
                   </div>
                   <div class="display_flex">
-                    <div class="col-sm-2 max_width_200 min_width_185" style="padding-left: 0px;">
+                    <div class="col-sm-2 max_width_200 width_50_per" style="padding-left: 0px;">
                       <vuejs-datepicker class="form-control date_picker_small" :clear-button="true" :format="DatePickerFormat" :language="language" :value="item.date" name="datepicker" v-model="item.date"  placeholder="YYYY/MM/DD">
                       </vuejs-datepicker>
                     </div>
@@ -85,7 +85,7 @@
                     <label class="control-label">退勤時間</label>
                   </div>
                   <div class="display_flex">
-                    <div class="col-sm-2 max_width_200 min_width_185" style="padding-left: 0px;">
+                    <div class="col-sm-2 max_width_200 width_50_per" style="padding-left: 0px;">
                       <vuejs-datepicker class="form-control date_picker_small" :clear-button="true" :format="DatePickerFormat" :language="language" :value="item.leftDate" name="datepicker" v-model="item.leftDate"  placeholder="YYYY/MM/DD">
                       </vuejs-datepicker>
                     </div>
