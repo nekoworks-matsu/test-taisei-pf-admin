@@ -30,6 +30,12 @@
     <section class="content">
       <div class="box" id="pdf">
         <div class="box-body no-paddin">
+          <div class="form-group form_box_group" v-if="isHeadquartersMode">
+            <label class="col-sm-2 control-label padding_left_40">ビル</label>
+            <div class="col-sm-10">
+              {{ fixedBuildingName }}
+            </div>
+          </div>
 
           <ul class="tab" v-if="!loading">
             <li @click="changeTab($event)" class="tab__item on"><span class="tab__link on" data-tab-body="1">{{ fixedTitle }}情報</span></li>
@@ -63,6 +69,7 @@
                   <button v-if="!loading" type="button" class="btn btn-default global_btn form_button_flex_item" @click="onTransitionButton('/business_report/' + $route.params.operation_id + '/' + $route.params.report_group_id)">戻る</button>
                 </div>
               </form>
+              <pdf-1 id="pdf1" :data="pdfData" :definitions="businessReportFieldDefinitions" :childParam="childParam" v-if="pdfVisible&&$route.params.report_group_id==1"></pdf-1>
             </div>
 
             <div class="tab-body__item tab-body__item--2">
@@ -105,6 +112,7 @@
   import BusinessReportImageView from '~/components/BusinessReportImageView'
   import ModalAlertView from '~/components/ModalAlertView'
   import ListView2 from '~/components/ListView2';
+  import Pdf1 from '~/components/PDFs/FacilityReport/PdfComponent';
   import Loading from 'vue-loading-overlay';
     // Import stylesheet
   import 'vue-loading-overlay/dist/vue-loading.css';
@@ -118,12 +126,17 @@
         api: '/business-report/' + this.$route.params.id,
         fullpage: true,
         isButtonDisabled: false,
+        isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
         loading: false,
+        pdfVisible:true,
+        pdfData: {},
         error: '',
         childParam: {
           loading: true,
           title: '',
           operation: '',
+          buildingId: null,
+          buildingName: '',
           columns: [], // POSTパラメータでエラー表示するために必要(子コンポーネントから取得)
         },
         param: {
@@ -174,12 +187,13 @@
       ModalAlertView,
       Loading,
       ListView2,
+      Pdf1
     },
     computed: {
       fixedLoading() {
         if (this.loading) {
           return this.loading
-        }else{
+        } else {
           return this.childParam.loading;
         }
       },
@@ -188,6 +202,9 @@
       },
       fixedOperation() {
         return this.childParam.operation;
+      },
+      fixedBuildingName() {
+        return this.childParam.buildingName;
       }
     },
     methods: {
@@ -200,10 +217,14 @@
         this.$refs.child.showImage(imgSrc);
       },
 
+
+      // ↓↓ PDFダウンロードに関する処理
+
       /**
        * PDFダウンロード処理.
        */
       tappedPdfDownload(){
+        this.pdfVisible = true;
         this.loading = true;
         setTimeout(() => {
           this.generatePdf();
@@ -211,15 +232,17 @@
       },
       generatePdf(){
         const self = this;
-        const source = document.getElementById('pdf');
-        let height = source.offsetHeight;
-        let width = source.offsetWidth;
+        const source = (this.$route.params.report_group_id == 1) ? document.getElementById('pdf1'):document.getElementById('pdf');
+        let height = source.offsetHeight-100;
+        let width = 900;//source.offsetWidth;
+        console.log("width:"+width);
+        console.log("height:"+height);
         html2canvas(source,{
           width: width,
           height: height,
           scale : 2,
           scrollX: 0,
-       　　scrollY: -window.scrollY,
+          scrollY: -window.scrollY,
         }).then(capture => {
           const imgData = capture.toDataURL('image/png');
           const doc = new jsPDF({
@@ -227,11 +250,17 @@
             format: [width,height],
             compress: true
           });
-          doc.addImage(imgData, 'PNG', 10, 30, width*0.98, height*0.98);
+          doc.addImage(imgData, 'PNG', 0, 10, width*0.95, height*0.95);
           doc.save("報告書.pdf");
           self.loading = false;
+          // self.pdfVisible = false;
         });
       },
+
+      // ↑↑ PDFダウンロードに関する処理
+
+
+      // ↓↓ タブ切り替えに関する処理
 
       /**
        * タブ切り替え処理.
@@ -257,13 +286,16 @@
         document.getElementsByClassName('tab-body__item--' + e.target.dataset.tabBody)[0].classList.add('on');
       },
 
+      // ↑↑ タブ切り替えに関する処理
 
-      // 子コンポーネントから呼び出される処理
+
+      // ↓↓ 子コンポーネントから呼び出される処理
 
       /**
        * タイトル, パンくずリスト, カラム情報(filedsのみ), loading状態の更新.
        */
       updateChildParam(childParam) {
+        // console.log("child:"+JSON.stringify(childParam));
         this.childParam = childParam;
       },
 
@@ -285,6 +317,7 @@
        * 各フェーズで表示する項目の定義情報の更新.
        */
       updateBusinessReportFieldDefinitions(fieldDefinitions) {
+        // console.log("定義:"+JSON.stringify(fieldDefinitions));
         this.businessReportFieldDefinitions = fieldDefinitions;
       },
 
@@ -292,17 +325,24 @@
        * 各フェーズで表示する項目のデータ情報の更新.
        */
       updateBusinessReportFields(fields) {
+        // console.log("フィールド:"+JSON.stringify(fields));
+        if (fields.length > 0) {
+          this.pdfData = fields[0].data;
+        }
+
         this.businessReportFields = fields;
-      },
+      }
+
+      // ↑↑ 子コンポーネントから呼び出される処理
 
     },
 
     created() {
-      //console.log('DetailView - created');
-      //console.log('this.businessReportFieldDefinitions');
-      //console.dir(this.businessReportFieldDefinitions);
-      //console.log('this.businessReportFields');
-      //console.dir(this.businessReportFields);
+      // console.log('DetailView - created');
+      // console.log('this.businessReportFieldDefinitions');
+      // console.dir(this.businessReportFieldDefinitions);
+      // console.log('this.businessReportFields');
+      // console.dir(this.businessReportFields);
 
       const key = 'Equipment:BusinessReport:view';
       this.checkDisplayPermission(key, () => {
@@ -311,19 +351,19 @@
     },
 
     mounted() {
-      //console.log('DetailView - mounted');
-      //console.log('this.businessReportFieldDefinitions');
-      //console.dir(this.businessReportFieldDefinitions);
-      //console.log('this.businessReportFields');
-      //console.dir(this.businessReportFields);
+      // console.log('DetailView - mounted');
+      // console.log('this.businessReportFieldDefinitions');
+      // console.dir(this.businessReportFieldDefinitions);
+      // console.log('this.businessReportFields');
+      // console.dir(this.businessReportFields);
     },
 
     updated() {
-      //console.log('DetailView - updated');
-      //console.log('this.businessReportFieldDefinitions');
-      //console.dir(this.businessReportFieldDefinitions);
-      //console.log('this.businessReportFields');
-      //console.dir(this.businessReportFields);
+      // console.log('DetailView - updated');
+      // console.log('this.businessReportFieldDefinitions');
+      // console.dir(this.businessReportFieldDefinitions);
+      // console.log('this.businessReportFields');
+      // console.dir(this.businessReportFields);
     },
 
     watch: {

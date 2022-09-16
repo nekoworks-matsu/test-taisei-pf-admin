@@ -113,6 +113,14 @@ export default {
         return '---'
       }
     },
+     df_jst2(date, format) {
+      try {
+        if (date < 10000000000) date *= 1000
+        return date ? dateFormat(date, format || 'yyyy年mm月dd日 HH:MM:ss') : '---'
+      } catch (e) {
+        return '---'
+      }
+    },
     df_utc(date, format) {
       try {
         var normalizedDateStr = date.replace(/Z$/, '+09:00')
@@ -230,12 +238,12 @@ export default {
      * フロアタイプごとのデータの並び替え
      */
     sortFloorType(floors, type, isAsc) {
-      var resData = floors.filter(function(a) {
+      var resData = floors.filter(function (a) {
         if (a != undefined) {
           return a.type == type
         }
       })
-      resData.sort(function(a, b) {
+      resData.sort(function (a, b) {
         if (isAsc) {
           if (parseInt(a.name) < parseInt(b.name)) {
             return -1
@@ -271,7 +279,7 @@ export default {
         res = this.composeFloors(res, this.sortFloorType(floors, 2, true))
         res = this.composeFloors(
           res,
-          floors.filter(function(a) {
+          floors.filter(function (a) {
             if (a != undefined) {
               return a.type == 3
             }
@@ -280,7 +288,7 @@ export default {
       } else {
         res = this.composeFloors(
           res,
-          floors.filter(function(a) {
+          floors.filter(function (a) {
             if (a != undefined) {
               return a.type == 3
             }
@@ -672,7 +680,7 @@ export default {
       error = error.details
       const errorList = []
       const duplicationList = []
-      error.forEach(function(obj) {
+      error.forEach(function (obj) {
         if (duplicationList.indexOf(colm[obj.field]) == -1) {
           duplicationList.push(colm[obj.field])
           errorList.push([colm[obj.field], errCode[obj.code]])
@@ -683,7 +691,7 @@ export default {
       try {
         let msg = []
         if (error) {
-          errorList.forEach(function(obj) {
+          errorList.forEach(function (obj) {
             msg.push(obj[0] + ' : ' + obj[1])
           })
         } else {
@@ -780,7 +788,7 @@ export default {
 
         error = error.details
         const errorList = {}
-        error.forEach(function(obj) {
+        error.forEach(function (obj) {
           if (obj.field == 'password' && obj.code == 'minLength') {
             errorList[obj.field] = errCode['passwordMin']
           } else if (obj.field == 'password' && obj.code == 'maxLength') {
@@ -852,7 +860,7 @@ export default {
         const errorList = []
 
         if (error.details) {
-          error.details.forEach(function(obj) {
+          error.details.forEach(function (obj) {
             var col = columns.find(
               (v) => v.path === obj.path.replace('.dateValue', '')
             )
@@ -885,8 +893,8 @@ export default {
         const errorList = []
 
         if (error.details) {
-          error.details.forEach(function(obj) {
-            columns.forEach(function(columnObj) {
+          error.details.forEach(function (obj) {
+            columns.forEach(function (columnObj) {
               if (obj.path.includes(columnObj.nameLabel)) {
                 if (columnObj.column == obj.field) {
                   var errmsg = columnObj.name + ' : ' + errCode[obj.code]
@@ -921,7 +929,7 @@ export default {
         const errorList = [];
 
         if (error.details) {
-          error.details.forEach(function(obj) {
+          error.details.forEach(function (obj) {
             var col = columns.find((v) => obj.path.includes(v.path));
             var errmsg = col.name + ' : ' + errCode[obj.code];
             errorList.unshift(errmsg);
@@ -1000,16 +1008,16 @@ export default {
           }
         }
       } else {
-        if (api.match('access-logs')) {
+        if (api.match('access-logs') || api.match('/business-report-group-definitions')) {
           url = api
-        } else if (api == '/report-objects'){
+        } else if (api == '/report-objects' || api == '/business-report') {
           url =
             api +
             '?searchQuery=' +
             encodeURIComponent(JSON.stringify(lo)) +
             '&' +
             this.now
-        }else{
+        } else {
           url =
             api +
             '?filter=' +
@@ -1444,7 +1452,7 @@ export default {
       var buildingOperation = JSON.parse(
         localStorage.getItem('template_list')
       ).map((operation) => operation.operationCategoryId)
-      buildingOperation.sort(function(a, b) {
+      buildingOperation.sort(function (a, b) {
         if (a < b) return -1
         if (a > b) return 1
         return 0
@@ -1453,7 +1461,7 @@ export default {
       var memberOperation = JSON.parse(
         localStorage.getItem('member_operation')
       ).map((operation) => operation.operationCategoryId)
-      memberOperation.sort(function(a, b) {
+      memberOperation.sort(function (a, b) {
         if (a < b) return -1
         if (a > b) return 1
         return 0
@@ -1465,7 +1473,7 @@ export default {
       )
       duplicatedArr = [...new Set(duplicatedArr)]
       if (duplicatedArr.length == 0) return 0
-      var minId = duplicatedArr.reduce(function(a, b) {
+      var minId = duplicatedArr.reduce(function (a, b) {
         return Math.min(a, b)
       })
       return minId
@@ -1701,7 +1709,7 @@ export default {
     getQueryFromWhere(where) {
       var query = ''
       if (where != null && where.and != undefined) {
-        where.and.forEach(function(whe) {
+        where.and.forEach(function (whe) {
           if (whe.buildingId != null) {
             query += '&buildingId=' + whe.buildingId
           }
@@ -1736,27 +1744,27 @@ export default {
       return {
         Making: {
           value: 0,
-          text : '作成中'
+          text: '作成中'
         },
         Request: {
           value: 1,
-          text : '依頼・クレーム・定期'
+          text: '依頼・クレーム・定期'
         },
         Check: {
           value: 2,
-          text : '状況確認および対応'
+          text: '状況確認および対応'
         },
         WorkRequest: {
           value: 3,
-          text : '作業依頼' // 想定作業内容の作業依頼
+          text: '作業依頼' // 想定作業内容の作業依頼
         },
         WorkReport: {
           value: 4,
-          text : '作業報告' // 作業が終わった後
+          text: '作業報告' // 作業が終わった後
         },
         Complete: {
           value: 5,
-          text : '確認完了'
+          text: '確認'
         }
       }
     },
@@ -1796,7 +1804,7 @@ export default {
       // チェックが入ってるステータスから前のステータスの状態を確認する
       // チェックが入っていないステータスがある場合、問題あり(チェックNG)として返却する
       const lastKey = Object.keys(lastStatus)[0];
-      switch(Number(lastKey)) {
+      switch (Number(lastKey)) {
         case this.getBusinessReportStatus().Request.value:
           result.status = this.getBusinessReportStatus().Request;
           break;

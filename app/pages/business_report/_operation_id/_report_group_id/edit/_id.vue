@@ -26,6 +26,12 @@
     <section class="content">
       <div class="box">
         <div class="box-body no-paddin">
+          <div class="form-group form_box_group" v-if="isHeadquartersMode">
+            <label class="col-sm-2 control-label padding_left_40">ビル</label>
+            <div class="col-sm-10">
+              {{ fixedBuildingName }}
+            </div>
+          </div>
 
           <ul class="tab">
             <li @click="changeTab($event)" class="tab__item on"><span class="tab__link on" data-tab-body="1">{{ fixedTitle }}情報</span></li>
@@ -118,6 +124,7 @@
         api: '/business-report/',
         fullpage: true,
         isButtonDisabled: false,
+        isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
         error: '',
         alert: {
           title: 'test',
@@ -126,6 +133,8 @@
           loading: true,
           title: '',
           operation: '',
+          buildingId: null,
+          buildingName: '',
           columns: [], // POSTパラメータでエラー表示するために必要
         },
         param: {
@@ -185,6 +194,9 @@
       },
       fixedOperation() {
         return this.childParam.operation;
+      },
+      fixedBuildingName() {
+        return this.childParam.buildingName;
       }
     },
     methods: {
@@ -196,6 +208,9 @@
         var imgSrc = images.src;
         this.$refs.child.showImage(imgSrc);
       },
+
+
+      // ↓↓ タブ切り替えに関する処理
 
       /**
        * タブ切り替え処理.
@@ -221,8 +236,10 @@
         document.getElementsByClassName('tab-body__item--' + e.target.dataset.tabBody)[0].classList.add('on');
       },
 
+      // ↑↑ タブ切り替えに関する処理
 
-      // 更新処理関連
+
+      // ↓↓ 更新処理関連
 
       /**
        * 保存ボタン押下時イベントハンドラ.
@@ -303,8 +320,8 @@
                 });
                 break;
               case 2:
-                const hours = (field.hours.length < 2) ? '0' + field.hours : field.hours;
-                const minutes = (field.minutes.length < 2) ? '0' + field.minutes : field.minutes;
+                const hours = (field.hours < 10) ? '0' + field.hours : field.hours;
+                const minutes = (field.minutes < 10) ? '0' + field.minutes : field.minutes;
                 const date = this.df_utc(moment(field.value).format('YYYY-MM-DDT') + hours + ':' + minutes + ':00.000Z');
                 tempFields.push({
                   'id': field.id,
@@ -390,7 +407,7 @@
         }
 
         var results = {
-          'buildingId': parseInt(localStorage.getItem('buildings_id')),
+          'buildingId': this.childParam.buildingId,
           'businessReportGroupDefinitionId': parseInt(this.$route.params.report_group_id),
           'reportedAt': new Date().toISOString(),
           'reportedBy': Number(localStorage.getItem('member_id')),
@@ -408,6 +425,10 @@
         return results;
       },
 
+      // ↑↑ 更新処理関連
+
+
+      // ↓↓ 削除処理関連
 
       /**
        * 削除ボタン押下時の処理.
@@ -424,8 +445,10 @@
         this.onDelete(this.api, '/business_report/' + this.$route.params.operation_id + '/' + this.$route.params.report_group_id);
       },
 
+      // ↑↑ 削除処理関連
 
-      // 子コンポーネントから呼び出される処理
+
+      // ↓↓ 子コンポーネントから呼び出される処理
 
       /**
        * タイトル, パンくずリスト, カラム情報(filedsのみ), loading状態の更新.
@@ -462,12 +485,14 @@
        */
       updateBusinessReportFields(fields) {
         this.businessReportFields = fields;
-      },
+      }
+
+      // ↑↑ 子コンポーネントから呼び出される処理
 
     },
 
     created() {
-      //console.log('EditView - created');
+      console.log('EditView - created');
       console.log('this.businessReportFieldDefinitions');
       console.dir(this.businessReportFieldDefinitions);
       console.log('this.businessReportFields');
@@ -480,19 +505,19 @@
     },
 
     mounted() {
-      //console.log('EditView - mounted');
-      //console.log('this.businessReportFieldDefinitions');
-      //console.dir(this.businessReportFieldDefinitions);
-      //console.log('this.businessReportFields');
-      //console.dir(this.businessReportFields);
+      console.log('EditView - mounted');
+      console.log('this.businessReportFieldDefinitions');
+      console.dir(this.businessReportFieldDefinitions);
+      console.log('this.businessReportFields');
+      console.dir(this.businessReportFields);
     },
 
     updated() {
-      //console.log('EditView - updated');
-      //console.log('this.businessReportFieldDefinitions');
-      //console.dir(this.businessReportFieldDefinitions);
-      //console.log('this.businessReportFields');
-      //console.dir(this.businessReportFields);
+      console.log('EditView - updated');
+      console.log('this.businessReportFieldDefinitions');
+      console.dir(this.businessReportFieldDefinitions);
+      console.log('this.businessReportFields');
+      console.dir(this.businessReportFields);
     },
   }
 

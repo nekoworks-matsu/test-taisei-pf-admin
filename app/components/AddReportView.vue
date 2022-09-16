@@ -174,9 +174,8 @@
             <!-- /.box-body -->
             <div class="box-footer form_button_flex flex_right border_top">
               <button type="button" class="btn btn-default global_btn form_button_flex_item" onclick="window.history.back()">キャンセル</button>
-              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onAddButtonClick('temporary')" v-if="param.isApply">仮登録(未申請)</button>
-              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onAddButtonClick('main')" v-if="param.isApply">登録して申請</button>
-              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onAddButtonClick('noapply')" v-if="!param.isApply">登録</button>
+              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onAddButtonClick('temporary')">仮登録(未申請)</button>
+              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onAddButtonClick('main')">登録して申請</button>
             </div>
           <!-- /.box-footer -->
           </form>

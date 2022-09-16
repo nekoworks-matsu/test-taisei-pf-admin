@@ -103,7 +103,7 @@
                     <button type="button" class="btn btn_border btn_white btn_shadow select_button width_80 font_12" @click="onOpenAutoSetting(targetCnt, reportObjectCnt)">詳細<span class="fa pull-right" v-bind:class="isDown[targetCnt][reportObjectCnt]?'fa-chevron-up':'fa-chevron-down'" style="margin-top: 2px;"></span></button>
                     <span class="item-text margin_left_5 font_12 color_red" v-if="!isSetting[targetCnt][reportObjectCnt]">未設定</span>
                     <span class="item-text margin_left_5 font_12 color_green" v-if="isSetting[targetCnt][reportObjectCnt]">設定中</span>
-                    
+
                     <!-- <div v-bind:class="{auto_config_hide: !isDown[targetCnt][reportObjectCnt]}"> -->
                     <div v-if="isDown[targetCnt][reportObjectCnt]">
                       <div class="margin_top_10">
@@ -130,7 +130,7 @@
                       </div>
                     <!-- <div class="auto_config"> -->
                     </div>
-                  </div>  
+                  </div>
                 </div>
               </div>
               <!-- /.box-body -->
@@ -143,7 +143,7 @@
               <!-- <div class="box-footer">
                 <button type="button" class="btn btn-default pull-right" onclick="window.history.back()">戻る</button>
               </div> -->
-              <div class="box-footer form_button_flex flex_center border_top">
+              <div class="box-footer form_button_flex flex_center border_top" v-if="isHeadquartersMode">
                 <button type="button" class="btn btn-default global_btn form_button_flex_item"  @click="onTransitionButton('/majoritems_setting/' + $route.params.operation_id)">戻る</button>
               </div>
               <!-- /.box-footer -->
@@ -163,7 +163,7 @@
   import MonthlyReportView from '~/components/MonthlyReportView'
   import Loading from 'vue-loading-overlay';
   import 'vue-loading-overlay/dist/vue-loading.css';
-  
+
   export default {
     data() {
       return {
@@ -380,9 +380,9 @@
 
           var reportList = JSON.parse(localStorage.getItem('report_list'));
           var report = reportList.find(function(report) {
-            return (report.id == that.$route.params.operation_id) 
+            return (report.id == that.$route.params.operation_id)
           });
-          
+
           if (this.isHeadquartersMode) {
             this.setMajorItems(majorItems, report);
             this.setReadSettingData(read.autoCreationScheduleReportObjects);
@@ -408,9 +408,9 @@
               });
               if (check != undefined) {
                 check.isCheck = true;
-              }    
+              }
             }
-          }); 
+          });
           that.getDisplayState(targetCnt, reportObjectCnt);
         });
       },
@@ -476,9 +476,9 @@
       const key = (this.$route.params.operation_id == 1) ? "Security:AutocreationScheduleOperationCategory:view" : "Cleaning:AutocreationScheduleOperationCategory:view";
       this.checkDisplayPermission(key,() => {
         this.setTitle();
-        this.getMajorItemsSettingDataRequest("/autocreation-schedule-operation-category");   
+        this.getMajorItemsSettingDataRequest("/autocreation-schedule-operation-category");
       });
-      
+
     },
     watch: {
       $route: function(route) {
@@ -487,8 +487,8 @@
           this.targetMajorItems = [];
           this.itemInfo = "";
           this.setTitle();
-          this.getMajorItemsSettingDataRequest("/autocreation-schedule-operation-category");   
-        });   
+          this.getMajorItemsSettingDataRequest("/autocreation-schedule-operation-category");
+        });
       }
     }
   };

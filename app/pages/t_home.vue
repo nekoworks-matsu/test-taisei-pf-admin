@@ -2,7 +2,7 @@
   <div align="left">
     <!-- Main Header -->
     <tablet-header-view ref="header" :param="param"></tablet-header-view>
-    
+
     <div class="box ctm_menu box_padding" v-bind:style="{'margin-top':tabletHeight+'px'}">
       <section class="sidebar">
         <ul class="sidebar-menu t_sidebar-menu" data-widget="tree">
@@ -20,7 +20,7 @@
             <li class="treeview cursor_pointer" @click="removeSearchItem('/t_attendance/'+report_menu.id)">
               <a><i class="fa fa-clock"></i><span>勤務スタッフ</span></a>
             </li>
-            <li class="treeview" v-for="majoritems_group in report_menu.majoritems" :key="majoritems_group.name">
+            <li class="treeview" v-for="majoritems_group in report_menu.majoritems" :key="majoritems_group.name" v-if="(majoritems_group.name!='センサーログ')">
               <a><i class="fa fa-edit"></i><span>{{majoritems_group.name}}</span><span class="pull-right-container t_angle_icon"><i class="fa fa-angle-left pull-right"></i></span></a>
               <ul class="treeview-menu">
                 <!-- <nuxt-link tag="li" v-for="majoritem in majoritems_group.reportObjectDefinitions" v-bind:to="majoritem.path" :class="{ active: path===majoritem.path }" :key="majoritem.name">
@@ -48,7 +48,7 @@ import TModalInformation from '~/components/TModalInformatiion'
     layout: 'everyone',
     data() {
       return {
-        role: localStorage.getItem('role'), 
+        role: localStorage.getItem('role'),
         path: '',
         menuList: {
           report:[]
@@ -72,7 +72,7 @@ import TModalInformation from '~/components/TModalInformatiion'
       TModalInformation
     },
     methods: {
-      setActiveIndex(categories, index, path){ 
+      setActiveIndex(categories, index, path){
         if (categories) {
           for (var i = 0; i < categories.length; i++) {
             if (categories[i].path === path) {
@@ -90,7 +90,7 @@ import TModalInformation from '~/components/TModalInformatiion'
           var report_hierarchy = []
           var majoritems_hierarchy = []
           var majoritems_group = []
-          
+
           var reportObjectGroupDefinitionId = 0;
           var cnt = 0;
 
@@ -105,13 +105,13 @@ import TModalInformation from '~/components/TModalInformatiion'
               //NOTE:大項目階層
               majoritems_hierarchy.push({ name: majoritems_obj.name, id: majoritems_obj.id, path: '/t_majoritems/' + majoritems_obj.id })
               reportObjectGroupDefinitionId = majoritems_obj.reportObjectGroupDefinitionId
-                 
+
               /*NOTE:グループ階層*/
               group_name = majoritems_obj.reportObjectGroupDefinition.name;
               group_id = majoritems_obj.reportObjectGroupDefinition.id;
               majoritems_group.push({ name:group_name, id:group_id, reportObjectDefinitions:majoritems_hierarchy});
             } else {
-              if (reportObjectGroupDefinitionId != majoritems_obj.reportObjectGroupDefinitionId) { 
+              if (reportObjectGroupDefinitionId != majoritems_obj.reportObjectGroupDefinitionId) {
                 //NOTE:新しいグループ
                 cnt=0;
                 majoritems_hierarchy = [];
@@ -123,11 +123,11 @@ import TModalInformation from '~/components/TModalInformatiion'
               }
             }
           });
- 
+
           /*報告書階層*/
           report_hierarchy.push({ name: reportDefinitions_obj.name, id: reportDefinitions_obj.id, path: '/t_report/' + reportDefinitions_obj.id, majoritems:majoritems_group });
           majoritems_hierarchy = [];
-          majoritems_group =[]; 
+          majoritems_group =[];
           })
           localStorage.setItem('report_list', JSON.stringify(report_hierarchy));
           this.menuList.report = report_hierarchy;
@@ -157,10 +157,10 @@ import TModalInformation from '~/components/TModalInformatiion'
           }
           majoritems += this.menuList.report[i].majoritems.length;
         }
-        
+
         return 1 + ret + majoritems + (2+i*2);
       },
-      openAccordion() { 
+      openAccordion() {
         var privious_page = localStorage.getItem("privious_page");
         if (privious_page != null) {
           var reportObject = this.getReportObject(localStorage.getItem("privious_page"));
@@ -201,7 +201,7 @@ import TModalInformation from '~/components/TModalInformatiion'
         for (var i = 0; i < reportObjectDefinitions.length; i++) {
           if (reportObjectDefinitions[i].reportObjectGroupDefinitionId == id  && this.isReportObjectDefinition(reportObjectDefinitions[i].id, buildingOperations ) ) {
             res.push({name: reportObjectDefinitions[i].name, sort: reportObjectDefinitions[i].sort, id: reportObjectDefinitions[i].id, path: '/t_majoritems/' + reportObjectDefinitions[i].operationCategoryId + '/' +  reportObjectDefinitions[i].id});
-          } 
+          }
         }
         res.sort(function(a,b){
           if(a.sort < b.sort) return -1;
@@ -253,7 +253,7 @@ import TModalInformation from '~/components/TModalInformatiion'
                   });
                   report_hierarchy.push({ name: val[i].operationCategory.reportName, operation_name: val[i].operationCategory.operationName, id: val[i].operationCategoryId, path: '/report/' + val[i].operationCategoryId, majoritems: this.convertReportObjectDefinitions(operation.reportObjectDefinitions, val[i].operations)});
                 }
-              } 
+              }
             }
           }
           localStorage.setItem('report_list', JSON.stringify(report_hierarchy));
@@ -280,7 +280,7 @@ import TModalInformation from '~/components/TModalInformatiion'
       createMenulistRequest(api, operationReports) {
         this.onSearch(api, null, null, (val) => {
           var targetOperationReports = operationReports.filter(operation => operation.active == true);
-        
+
           var targetTemplate = [];
           for (var i = 0; i < val.length; i++) {
             for (var j = 0; j < targetOperationReports.length; j++) {
@@ -320,7 +320,7 @@ import TModalInformation from '~/components/TModalInformatiion'
         localStorage.setItem('isInfoRead', true);
         $('#modal').modal('show')
       }
-      this.tabletHeight = this.$refs.header.$el.clientHeight;  
+      this.tabletHeight = this.$refs.header.$el.clientHeight;
     },
     updated() {
       this.openAccordion();

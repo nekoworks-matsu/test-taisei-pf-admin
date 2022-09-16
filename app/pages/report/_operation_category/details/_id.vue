@@ -91,7 +91,7 @@
                 </div>
               </div>
 
-              <div class="form-group form_box_group" v-if="isAppry">
+              <div class="form-group form_box_group">
                 <div class="form_box_group_title">
                   <label class="control-label">ステータス</label>
                 </div>
@@ -218,7 +218,7 @@
               </div>
 
               <!-- 承認履歴動的 -->
-              <div v-if="item.status&&isAppry">
+              <div v-if="item.status">
                 <div class="box-header with-border margin_bottom_20">
                   <h2 class="box-title font_18">承認申請履歴</h2>
                 </div>
@@ -399,7 +399,6 @@ export default {
       buildingTemplates: [],
       businessStartTime: '',
       sortSettings: [],
-      isAppry: this.toBoolean(localStorage.getItem('is_apply')),
       language:{
         language: 'Japanese', 
         months: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'], 

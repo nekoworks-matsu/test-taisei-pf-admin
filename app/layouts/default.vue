@@ -375,7 +375,7 @@
                         </a>
                       </li>
                     </ul>
-                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" @click="removeSearchItem('/report_calendars/'+report_menu.id)" v-if="(checkMenuPermission('Security:ReportSchedule:search') || checkMenuPermission('Cleaning:ReportSchedule:search')) && !isHeadquartersMode && isAppry">
+                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" @click="removeSearchItem('/report_calendars/'+report_menu.id)" v-if="(checkMenuPermission('Security:ReportSchedule:search') || checkMenuPermission('Cleaning:ReportSchedule:search')) && !isHeadquartersMode">
                       <li :class="{ active: path=='/report_calendars/'+report_menu.id , current: path=='/report_calendars/'+report_menu.id }">
                         <a>
                           <figure class="ts_ex_sidebar_menu_icon">
@@ -408,7 +408,7 @@
                         </a>
                       </li>
                     </ul>
-                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" @click="removeSearchItem('/report_approval/'+report_menu.id)" v-if="(checkMenuPermission('Security:ApproveReport:search') || checkMenuPermission('Cleaning:ApproveReport:search')) && !isHeadquartersMode && isAppry">
+                    <ul class="ts_ex_sidebar_menu_list cursor_pointer" @click="removeSearchItem('/report_approval/'+report_menu.id)" v-if="(checkMenuPermission('Security:ApproveReport:search') || checkMenuPermission('Cleaning:ApproveReport:search')) && !isHeadquartersMode">
                       <li :class="{ active: path=='/report_approval/'+report_menu.id, current: path=='/report_approval/'+report_menu.id }">
                         <a>
                           <figure class="ts_ex_sidebar_menu_icon">
@@ -541,9 +541,8 @@ export default {
       companyName: '',
       buildingId: localStorage.getItem('buildings_id'),
       memberId: localStorage.getItem('member_id'),
-      isAppry: this.toBoolean(localStorage.getItem('is_apply')),
       autoConfigId: [],
-      role: localStorage.getItem('role'), 
+      role: localStorage.getItem('role'),
       operationId: '',
       waitSeconds: 900,
       refreshTimeSeconds: 3000,
@@ -673,7 +672,7 @@ export default {
               .send()
               .end((err, res) => {
                 if (res.ok) {
-                  
+
                   localStorage.setItem('token', res.body.token)
                   if (this.checkItemPermission("Common:forSystemApproval")){
                     var where = {"and":[{"companyId": localStorage.getItem('company_id')}]};
@@ -807,7 +806,7 @@ export default {
       for (var i = 0; i < reportObjectDefinitions.length; i++) {
         if (reportObjectDefinitions[i].reportObjectGroupDefinitionId == id  && this.isReportObjectDefinition(reportObjectDefinitions[i].id, buildingOperations ) ) {
           res.push({name: reportObjectDefinitions[i].name, sort: reportObjectDefinitions[i].sort, id: reportObjectDefinitions[i].id, path: '/majoritems/' + reportObjectDefinitions[i].id, operationCategoryId: reportObjectDefinitions[i].operationCategoryId});
-        } 
+        }
       }
      res.sort(function(a,b){
       if(a.sort < b.sort) return -1;
@@ -874,7 +873,7 @@ export default {
       this.$router.push('/information');
       // var searchWhere = {"and":[{"displayTo":{"gte":this.df(new Date())}},{"displayFrom":{"lte":this.df(new Date())}},{"display":true}]};
       // this.onSearch('/notifications', null, searchWhere, val => {
-        
+
       // });
     },
     mouseoverAct(id) {
@@ -897,7 +896,7 @@ export default {
       var find;
 
       find = master.find(val => val == this.path);
-      if (find != undefined) { 
+      if (find != undefined) {
         this.dataCategory = 'master';
         var ele = document.getElementById(this.dataCategory);
         ele.classList.add("active");
@@ -905,7 +904,7 @@ export default {
       }
 
       find = aggregate.find(val => val == this.path);
-      if (find != undefined) { 
+      if (find != undefined) {
         this.dataCategory = 'aggregate';
         var ele = document.getElementById(this.dataCategory);
         ele.classList.add("active");
@@ -956,6 +955,7 @@ export default {
     }
     if (this.isHeadquartersMode || this.isSystemApprovalMode) {
       this.menuList.report = JSON.parse(localStorage.getItem('report_list'));
+      this.menuList.businessReportGroupDefinitions = JSON.parse(localStorage.getItem('business_report_group_definitions'))
     } else {
       if(localStorage.getItem('buildings_id')==null){
         location.href = '/login'

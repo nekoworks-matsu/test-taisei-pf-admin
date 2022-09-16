@@ -47,7 +47,7 @@
                   </div>
                   <div class="form_box_group_field">
                     <select class="form-control" v-model="param.buildingId" @change="changedBuilding()">
-                      <option v-bind:value="building.value" v-for="building in param.buildings">{{building.name}}</option>
+                      <option v-bind:value="building.id" v-for="building in param.buildings">{{building.name}}</option>
                     </select>
                   </div>
                 </div>
@@ -291,7 +291,7 @@ export default {
       isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
       param: {
         buildingId: '',
-        buildings:[],
+        buildings:[{'id':null,'name':null}],
         title: '',
         reportObjectDefinitionId: '',
         init_val: {},
@@ -681,7 +681,7 @@ export default {
         return 0;
       });
 
-      if (this.param.buildingId == '' || this.param.buildingId == null){
+      if (this.param.buildingId == '' || this.param.buildingId == null || this.param.buildingId == 'null'){
         this.error = "ビル:必須項目です";
         return;
       }
@@ -1256,7 +1256,7 @@ export default {
       var that = this;
       this.onSearch('/buildings', null, where, val => {
         val.forEach(function(obj){
-          that.param.buildings.push({name: obj.name, value: obj.id});
+          that.param.buildings.push({name: obj.name, id: obj.id});
         });
       })
     },
@@ -1269,7 +1269,7 @@ export default {
         buildings = JSON.parse(localStorage.getItem('building_list'));
         for (var i = 0; i < buildings.length; i++) {
           const biru = buildings[i];
-          this.param.buildings[i+1] = {name: biru.name, value: biru.id};
+          this.param.buildings[i+1] = {name: biru.name, id: biru.id};
         }
         if (buildings.length == 0){
           this.error = "選択できるビルがありません";

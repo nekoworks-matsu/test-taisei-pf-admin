@@ -266,7 +266,7 @@ export default {
     createMenulistRequest(api) {
       let disalbedApi = '/companies/' + localStorage.getItem('company_id') + '/disabled-group-contents';
       let disalbedParam = { where: {buildingId: localStorage.getItem('buildings_id')}};
-      this.onSearch(disalbedApi, disalbedParam, null, disables => {      
+      this.onSearch(disalbedApi, disalbedParam, null, (disables) => {      
         var disabledDefinitions = [];
         disables.forEach(defitnitions => {
           disabledDefinitions = disabledDefinitions.concat(defitnitions.reportObjectDefinitionIds);
@@ -329,13 +329,6 @@ export default {
       localStorage.setItem('buildings_id', this.selectedBuilding.id);
       localStorage.setItem('buildings_name', this.selectedBuilding.value);
       localStorage.setItem("is_headquarters_mode", false);
-
-      //  仮処理: 承認フラグ
-      if (this.selectedBuilding.id == 1) {
-        localStorage.setItem("is_apply", false);
-      } else {
-        localStorage.setItem("is_apply", true);
-      }
 
       const url = process.env.API_SERVER + '/access-logs/select-building';
       var send_data = { buildingId: this.selectedBuilding.id };
@@ -402,9 +395,23 @@ export default {
           if(a.operation_type_id > b.operation_type_id) return 1;
           return 0;
         });
+
         localStorage.setItem('report_list', JSON.stringify(reportList));
         localStorage.setItem('operation_categories', JSON.stringify(val));
-        this.$router.push(this.$router.redirect ? this.$router.redirect : '/');
+        this.onSearch('/business-report-group-definitions?companyId='+parseInt(localStorage.getItem('company_id')), null, null, (res) => {
+          var businessReportGroupDefinitions = [];
+          res.forEach((val, index) => {
+            if (val.buildingHasBusinessReports != null) {
+              const businessReportDefinitions = [];
+              val.buildingHasBusinessReports.forEach((val2) => {
+                businessReportDefinitions.push({id: val2.id, name: val2.businessReportDefinition.name})
+              })
+              businessReportGroupDefinitions.push({id: val.id, name: val.name, operationTypeId: val.operationTypeId, businessReportDefinitions: businessReportDefinitions});
+            }
+          })
+          localStorage.setItem('business_report_group_definitions', JSON.stringify(businessReportGroupDefinitions));
+          this.$router.push(this.$router.redirect ? this.$router.redirect : '/');
+        })
       });
     },
     isHeadquartersMode() {

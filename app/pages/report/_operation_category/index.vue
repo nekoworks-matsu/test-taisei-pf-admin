@@ -15,7 +15,6 @@
         isRemoveAdd: false,
         report_name: '',
         isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
-        isApply: this.toBoolean(localStorage.getItem('is_apply')),
         param: {
           title: '',
           operation: '',
@@ -133,7 +132,12 @@
           val.forEach(function(obj){
             list.push({name: obj.name, value: obj.id});
           });
-          this.param.search[2].options = list;
+          if (this.isHeadquartersMode) {
+            this.param.search[2].options = list;
+          }else{
+            this.param.search[1].options = list;
+          }
+
         });
       },
       everyRoleDisplayConfig() {
@@ -182,12 +186,6 @@
         //   }
         // }
       },
-      removeStatus() {
-        if (!this.isApply && !this.isHeadquartersMode) {
-          this.param.search.splice(0, 1);
-          this.param.list.columns.splice(2, 1);
-        }
-      }
     },
     created() {
       const key = (parseInt(this.$route.params.operation_category) == 1) ? "Security:Report:search" : "Cleaning:Report:search";
@@ -196,10 +194,10 @@
         this.everyRoleDisplayConfig();
         this.setReportTitle();
         this.getMembersInfo();
-        this.removeStatus();
         if (!this.isHeadquartersMode) {
           this.setOperationTemplateIds(parseInt(this.$route.params.operation_category));
         }
+      
         // this.search_item = JSON.parse(localStorage.getItem('search_item'));
         // localStorage.removeItem('search_item');
         // window.onpopstate = this.windowBack(event, this.search_item);

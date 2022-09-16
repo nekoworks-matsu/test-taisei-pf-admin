@@ -10,7 +10,6 @@
       :isOpens="isOpens"
       :fieldDefinitions="businessReportFieldDefinitions[phase.index].definitions"
       :fields="businessReportFields[phase.index].data"
-      :isAddView="isAddView"
       :isEdit="isEdit">
     </business-report-phase-view>
   </div>
@@ -23,9 +22,10 @@
   export default {
     name: 'BusinessReportView',
     props: {
-      isAddView: Boolean,         // 登録画面かどうか
-      isEdit: Boolean,            // 登録・編集するかどうか.
-      businessReportFields: Array // フィールドデータ(そのまま子コンポーネントへ渡す).
+      isAddView: { type: Boolean, required: true, default: null },        // 登録画面かどうか
+      isEdit: { type: Boolean, required: true, default: null },           // 登録・編集するかどうか.
+      businessReportFields: { type: Array, required: true, default: [] }, // 業務報告書項目データ(そのまま子コンポーネントへ渡す).
+      buildingId: { type: Number, required: false, default: null }        // 選択されたビルID(登録画面の場合に送られてくる. 契約会社管理者の場合選択したビルID／それ以外の場合はlocalStorage上のビルID)
     },
     data() {
       return {
@@ -44,6 +44,8 @@
           loading: true,
           title: '',
           operation: '',
+          buildingId: null,
+          buildingName: '',
           columns: []
         },
         search: {
@@ -87,30 +89,21 @@
     },
     methods: {
 
-      // 定義情報
-
-      /**
-       * テキストエリアで改行した場合の高さ自動調整.
-       */
-      flexTextarea(el) {
-        const dummy = el.querySelector('.flex_textarea_dummy');
-        el.querySelector('.flex_textarea_textarea').addEventListener('input', e => {
-          dummy.textContent = e.target.value + '\u200b';
-        });
-      },
+      // ↓↓ 定義情報取得に関する処理.
 
       /**
        * 以下データを取得し表示用に整形.
        *   BusinessReportDefinition
        *   BusinessReportFieldDefinition
+       * 
+       *   return Promise
        **/
       getBusinessReportFieldDefinition() {
 
         return new Promise((resolve) => {
 
           var api_url = '/business-report-group-definitions/business-report-field-definitions';
-          var query = `?companyId=${parseInt(localStorage.getItem('company_id'))}&buildingId=${parseInt(localStorage.getItem('buildings_id'))}&businessReportGroupDefinitionId=${this.$route.params.report_group_id}`
-
+          var query = `?companyId=${parseInt(localStorage.getItem('company_id'))}&buildingId=${parseInt(this.childParam.buildingId)}&businessReportGroupDefinitionId=${this.$route.params.report_group_id}`;
           this.onSearch(api_url + query, null, null, res => {
 
             // タイトル
@@ -165,13 +158,86 @@
         });
       },
 
+      /**
+       * タイトル.
+       */
+      setTitle(name) {
+        this.childParam.title = name;
+      },
 
-      // ------------------------------
-      // 業務種別：設備(4)以外
-      // ------------------------------
+      /**
+       * パンくずリスト.
+       */
+      setBreadCrumbList(operationId) {
+        var report_list = JSON.parse(localStorage.getItem('report_list'));
+        var find = report_list.find(val => val.operation_type_id == operationId);
+        this.childParam.operation = (find != undefined) ? find.operation_name : '';
+      },
+
+      /**
+       * 業務報告書種別.
+       * 
+       *   return Promise
+       */
+      setBusinessReportDefinitions(buildingHasBusinessReports) {
+        return new Promise((resolve) => {
+          const list = [{ label: '業務報告書種別を選択してください', id: '' }];
+          buildingHasBusinessReports.forEach((buildingHasBusinessReport) => {
+            const obj = buildingHasBusinessReport.businessReportDefinition;
+            list.push({ label: obj.name, id: obj.id});
+          });
+          resolve(list);
+        });
+      },
+
+      /**
+       * メンバー情報.
+       *   param
+       *     operationId 業務種別ID
+       *   return Promise
+       */
+      getMembers(operationId) {
+        return new Promise((resolve) => {
+          const list = [{ label: '対象者を選択してください', id: '' }];
+          var member_api = '/buildings/' + this.childParam.buildingId + '/members';
+          var where = { 'and': [{ 'operationTypeId': operationId }] };
+          this.onSearch(member_api, null, where, (res) => {
+            res.forEach((obj) => {
+              list.push({ label: obj.name, id: obj.id });
+            });
+            resolve(list);
+          });
+        });
+      },
+
+      /**
+       * フロア情報.
+       * 
+       *   return Promise
+       */
+      getFloors() {
+        return new Promise((resolve) => {
+          const list = [{ label: 'フロアを選択してください。', id: '' }];
+          var floor_api = '/buildings/' + this.childParam.buildingId;
+          this.onSearch(floor_api, null, null, (res) => {
+            const floors = this.displayFloorFormat(res.floors, null, false);
+            floors.forEach((obj) => {
+              list.push({ label: obj.name + 'F', id: obj.id });
+            });
+            resolve(list);
+          });
+        });
+      },
 
       /**
        * 設備以外の定義情報.
+       *   業務種別：設備(4)以外
+       * 
+       *   param
+       *     businessReportFieldDefinitions (業務報告書)項目定義情報リスト
+       *     businessReportDefinitions (業務報告書)定義情報リスト
+       *     members メンバー情報リスト
+       *     floors フロア情報リスト
        **/
       setDefinitions(businessReportFieldDefinitions, businessReportDefinitions, members, floors) {
 
@@ -277,7 +343,7 @@
               break;
             case 5: // プルダウン(メンバ)
               // ログインユーザが業務に紐づいていなければ一覧にない場合があるためコメントアウト
-              // tempValue = localStorage.getItem('member_id');
+              tempValue = localStorage.getItem('member_id');
               break;
             case 7: // 画像
               // 登録／更新処理で値が入っていなければスルーするようにしているため、ダミーデータを入れておく
@@ -315,14 +381,15 @@
         };
       },
 
-
-      // ------------------------------
-      // 業務種別：設備(4)専用
-      // ------------------------------
-
       /**
        * 設備用の定義情報.
-       *   設備のみレイアウトが異なるため独自仕様となっています.
+       *   業務種別：設備(4)専用(設備のみレイアウトが異なるため独自仕様となっています.)
+       * 
+       *   param
+       *     businessReportFieldDefinitions (業務報告書)項目定義情報リスト
+       *     businessReportDefinitions (業務報告書)定義情報リスト
+       *     members メンバー情報リスト
+       *     floors フロア情報リスト
        **/
       setDefinitions4Equipment(businessReportFieldDefinitions, businessReportDefinitions, members, floors) {
 
@@ -674,10 +741,12 @@
 
       /**
        * フィールド項目を生成して内部変数に追加後、リセットして返却.
-       *   phase        : { 0:依頼, 1:状況確認, 2:作業・完了 }
-       *   sort         : 表示順
-       *   group        : form_box_group_title に表示するラベル文字列
-       *   definition   : form_box_group_field に表示する項目（BusinessReportFieldDefinitionの情報）
+       * 
+       *   param
+       *     phase        : { 0:依頼, 1:状況確認, 2:作業・完了 }
+       *     sort         : 表示順
+       *     group        : form_box_group_title に表示するラベル文字列
+       *     definition   : form_box_group_field に表示する項目（BusinessReportFieldDefinitionの情報）
        */
       setDefinition4Equipment(phase, sort, group, definition) {
 
@@ -719,6 +788,7 @@
         this.$set(definition, 'businessReportDefinitionId', (definition.columns.length == 0) ? null : definition.columns[0].businessReportDefinitionId); // 先頭のbusinessReportDefinitionIdをセット
         this.$set(definition, 'group', group);
         this.businessReportFieldDefinitions[phase].definitions.push(definition);
+        this.$emit('updateBusinessReportFieldDefinitions', this.businessReportFieldDefinitions);
         // リセットして返却
         return {
           'sort': 0,
@@ -728,29 +798,40 @@
         };
       },
 
+      // ↑↑ 定義情報取得に関する処理.
+
+
+      // ↓↓ 画面表示するためのデータ取得に関連する処理.
+
       /**
-       * 業務報告書種別.
+       * 以下データの取得.
+       *   BusinessReport
+       *   BusinessReportField
+       * 
+       *   return Promise
        */
-      setBusinessReportDefinitions(buildingHasBusinessReports) {
+      getBusinessReportFields() {
         return new Promise((resolve) => {
-          const list = [{ label: '業務報告書種別を選択してください', id: '' }];
-          buildingHasBusinessReports.forEach((buildingHasBusinessReport) => {
-            const obj = buildingHasBusinessReport.businessReportDefinition;
-            list.push({ label: obj.name, id: obj.id});
+          var api_url = '/business-report/' + this.$route.params.id;
+          var filter, where = {}; // 条件は特になし
+          this.onSearch(api_url, filter, where, res => {
+            const report = res.businessReport;
+            resolve(report);
           });
-          resolve(list);
         });
       },
 
       /**
-       * メンバー情報.
+       * ビル情報の取得.
+       * 
+       *   return Promise
        */
-      getMembers(operationId) {
+      getBuildings() {
         return new Promise((resolve) => {
-          const list = [{ label: '対象者を選択してください', id: '' }];
-          var member_api = '/buildings/' + localStorage.getItem('buildings_id') + '/members';
-          var where = { 'and': [{ 'operationTypeId': operationId }] };
-          this.onSearch(member_api, null, where, (res) => {
+          const list = [{ label: 'ビルを選択してください', id: '' }];
+          var building_api = '/buildings';
+          var where = {"and":[{"companyId": parseInt(localStorage.getItem('company_id'))}]};
+          this.onSearch(building_api, null, where, (res) => {
             res.forEach((obj) => {
               list.push({ label: obj.name, id: obj.id });
             });
@@ -760,40 +841,146 @@
       },
 
       /**
-       * フロア情報.
+       * 画面表示用にデータを定義情報と突き合わせて整形.
+       *   param
+       *     report 業務報告書項目リスト(データ)
+       *   return Promise
        */
-      getFloors() {
+      formatForDisplay(report) {
+
         return new Promise((resolve) => {
-          const list = [{ label: 'フロアを選択してください。', id: '' }];
-          var floor_api = '/buildings/' + localStorage.getItem('buildings_id');
-          this.onSearch(floor_api, null, null, (res) => {
-            const floors = this.displayFloorFormat(res.floors, null, false);
-            floors.forEach((obj) => {
-              list.push({ label: obj.name + 'F', id: obj.id });
-            });
-            resolve(list);
-          });
+
+          const fields = report?.businessReportFields;
+
+          if (0 < fields.length) {
+            const operationTypeId = this.businessReportGroupDefinition.operationTypeId;
+
+            // 業務報告書種別、ステータスはここで設定する
+            // 冗長な記載なってしまったが、ステータスに関しては登録されているデータから該当する画面上のチェック全てをtrueにする
+            switch(operationTypeId) {
+              case 4:  // 業務種別が設備(4)の場合
+                this.businessReportFields[1].data['business_report_type'].value = report.businessReportDefinitionId;
+
+                switch(report.status) {
+                  case this.getBusinessReportStatus().Request.value:
+                    this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
+                    break;
+                  case this.getBusinessReportStatus().Check.value:
+                    this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
+                    this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().Check.value].value = true;
+                    break;
+                  case this.getBusinessReportStatus().WorkRequest.value:
+                    this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
+                    this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().Check.value].value = true;
+                    this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().WorkRequest.value].value = true;
+                    break;
+                  case this.getBusinessReportStatus().WorkReport.value:
+                    this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
+                    this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().Check.value].value = true;
+                    this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().WorkRequest.value].value = true;
+                    this.businessReportFields[2].data['status_' + this.getBusinessReportStatus().WorkReport.value].value = true;
+                    break;
+                  case this.getBusinessReportStatus().Complete.value:
+                    this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
+                    this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().Check.value].value = true;
+                    this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().WorkRequest.value].value = true;
+                    this.businessReportFields[2].data['status_' + this.getBusinessReportStatus().WorkReport.value].value = true;
+                    this.businessReportFields[2].data['status_' + this.getBusinessReportStatus().Complete.value].value = true;
+                    break;
+                }
+                break;
+              default: // 上記以外
+                this.businessReportFields[0].data['business_report_type'].value = report.businessReportDefinitionId;
+
+                switch(report.status) {
+                  case this.getBusinessReportStatus().WorkReport.value:
+                    this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().WorkReport.value].value = true;
+                    break;
+                  case this.getBusinessReportStatus().Complete.value:
+                    this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().WorkReport.value].value = true;
+                    this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Complete.value].value = true;
+                    break;
+                }
+                break;
+            }
+
+            for (const phase in this.businessReportFieldDefinitions) {
+              const definitions = this.businessReportFieldDefinitions[phase].definitions;
+              definitions.forEach((definition) => {
+                definition.columns.forEach((col) => {
+                  const filters = fields.filter((field) => field.businessReportFieldDefinitionId == col.id);
+                  filters.forEach((filter) => { // 1件しか該当しないが0件の分岐処理が煩わしいためforEachで記載
+                    switch(col.type) {
+                      case 1:
+                        this.businessReportFields[phase].data[col.id].id = filter.id; // ID設定
+                        this.businessReportFields[phase].data[col.id].value = filter.textValue;
+                        break;
+                      case 2:
+                        const dateTime = new Date(filter.dateValue);
+                        this.businessReportFields[phase].data[col.id].id = filter.id;
+                        this.businessReportFields[phase].data[col.id].value = filter.dateValue;
+                        this.businessReportFields[phase].data[col.id].hours = dateTime.getHours();
+                        this.businessReportFields[phase].data[col.id].minutes = dateTime.getMinutes();
+                        break;
+                      case 3:
+                        this.businessReportFields[phase].data[col.id].id = filter.id;
+                        this.businessReportFields[phase].data[col.id].value = filter.numberValue;
+                        break;
+                      case 4:
+                        this.businessReportFields[phase].data[col.id].id = filter.id;
+                        this.businessReportFields[phase].data[col.id].value = filter.selectOptionDefinitionId;
+                        break;
+                      case 5:
+                        this.businessReportFields[phase].data[col.id].id = filter.id;
+                        this.businessReportFields[phase].data[col.id].value = filter.memberId;
+                        break;
+                      case 6:
+                        this.businessReportFields[phase].data[col.id].id = filter.id;
+                        this.businessReportFields[phase].data[col.id].value = filter.textValue;
+                        break;
+                      case 7:
+                        let tempImageValues = {
+                          'id': filter.id,
+                          'businessReportFieldDefinitionId': col.id,
+                          'type': col.type,
+                          'value': filter.textValue,
+                          'captionValue': filter.captionValue,
+                          'commonFlg': col.commonFlg
+                        }
+                        this.images.push(tempImageValues);
+                        this.businessReportFields[phase].data[col.id].id = filter.id;
+                        this.businessReportFields[phase].data[col.id].value = 'dummy';
+                        break;
+                      case 9:
+                        this.businessReportFields[phase].data[col.id].id = filter.id;
+                        var floors = filter.businessReportFieldFloors;
+                        this.businessReportFields[phase].data[col.id].value = (floors && 0 < floors.length) ? floors[0].floorId : null;
+                        break;
+                      case 13:
+                        this.businessReportFields[phase].data[col.id].id = filter.id;
+                        this.businessReportFields[phase].data[col.id].selected.push(filter.numberValue);
+                        break;
+                      default:
+                        break;
+                    }
+                  });
+                });
+              });
+            }
+          }
+          resolve();
         });
       },
 
-      /**
-       * タイトル.
-       */
-      setTitle(name) {
-        this.childParam.title = name;
-      },
+      // ↑↑ 画面表示するためのデータ取得に関連する処理.
 
-      /**
-       * パンくずリスト.
-       */
-      setBreadCrumbList(operationId) {
-        var report_list = JSON.parse(localStorage.getItem('report_list'));
-        var find = report_list.find(val => val.operation_type_id == operationId);
-        this.childParam.operation = find.operation_name;
-      },
+
+      // ↓↓ 過去データ表示のための処理.
 
       /**
        * 過去データ検索のキーとなる検索条件項目の取得.
+       *   param
+       *     searchForms 検索条件フィールド
        */
       setSearchForms(searchForms) {
         // type=2:日付(年月日時分)の検索条件フィールド
@@ -821,6 +1008,11 @@
 
       /**
        * 定義情報から検索結果一覧の表示項目を設定.
+       *   param
+       *     listColumns 過去データ一覧表示項目リスト
+       *     businessReportDefinitions 業務報告書定義情報リスト
+       *     members メンバー情報リスト
+       *     floors フロア情報リスト
        */
       setListColumns(listColumns, businessReportDefinitions, members, floors) {
 
@@ -869,21 +1061,15 @@
         });
       },
 
-
-      // 過去データのための検索処理.
-
       /**
        * 検索.
        */
       getPastData() {
-
         var searchConditions = this.setOnSearchConditions();
         var apiUrl = '/business-report';
-
         this.onSearch(apiUrl, searchConditions, null, (searchRes) => {
           this.setItems(searchRes.businessReports);
         });
-
       },
 
       /**
@@ -891,8 +1077,9 @@
        */
       setOnSearchConditions() {
         var conditions = this.setInnerConditions();
+        var buildingId = this.childParam.buildingId;
         var results = {
-          'buildingId' : localStorage.getItem('buildings_id'),
+          'buildingId' : buildingId,
           'businessReportGroupDefinitionId': this.$route.params.report_group_id,
           'conditions' : conditions,
         };
@@ -942,32 +1129,42 @@
         return conditions;
       },
 
-      /** 
-       * 日付変換(YYYY/MM/DD HH:MM)
+      /**
+       * 日付変換(YYYY/MM/DD HH:MM).
+       *   param
+       *     showAt 日付(Date型)
+       *     hh 時間(Number型)
+       *     mm 分(Number型)
        */
       getShowAtDateTime(showAt, hh, mm) {
         return this.convertShowAtDate(showAt) +' '+ this.convertTime(hh) + ':' + this.convertTime(mm) + ':59';
       },
       /**
        * 日付変換(YYYY/MM/DD)
+       *   param
+       *     showAt 日付(Date型)
        */
       convertShowAtDate(showAt) {
         if(showAt){
           return showAt.getFullYear() + "/" +  parseInt(showAt.getMonth() + 1) + "/"+ showAt.getDate();
-        } 
+        }
         return "";
       },
       /**
        * 時間変換
+       *   param
+       *     time 時間/分(Number型)
        */
       convertTime(time) {
         if (time == "-1") return "00"
-        if (String(time).length == 1) return "0" + time; 
+        if (String(time).length == 1) return "0" + time;
         return time;
       },
 
       /**
        * 検索結果の格納.
+       *   param
+       *     businessReports 業務報告書リスト(データ)
        */
       setItems(businessReports) {
         this.param.items = [];
@@ -1017,154 +1214,15 @@
         });
       },
 
-
-      // 詳細情報表示のためのデータ情報
-
-      /**
-       * 各フェーズで表示する項目のデータ情報の取得.
-       * 
-       *   Promiseを返却する.
-       */
-      getBusinessReportFields() {
-
-        return new Promise((resolve) => {
-
-          var api_url = '/business-report/' + this.$route.params.id;
-          var filter, where = {}; // 条件は特になし
-
-          this.onSearch(api_url, filter, where, res => {
-
-            const report = res.businessReport;
-            const fields = report?.businessReportFields;
-
-            if (0 < fields.length) {
-              const operationTypeId = this.businessReportGroupDefinition.operationTypeId;
-
-              // 業務報告書種別、ステータスはここで設定する
-              // 冗長な記載なってしまったが、ステータスに関しては登録されているデータから該当する画面上のチェック全てをtrueにする
-              switch(operationTypeId) {
-                case 4:  // 業務種別が設備(4)の場合
-                  this.businessReportFields[1].data['business_report_type'].value = report.businessReportDefinitionId;
-
-                  switch(report.status) {
-                    case this.getBusinessReportStatus().Request.value:
-                      this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
-                      break;
-                    case this.getBusinessReportStatus().Check.value:
-                      this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
-                      this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().Check.value].value = true;
-                      break;
-                    case this.getBusinessReportStatus().WorkRequest.value:
-                      this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
-                      this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().Check.value].value = true;
-                      this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().WorkRequest.value].value = true;
-                      break;
-                    case this.getBusinessReportStatus().WorkReport.value:
-                      this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
-                      this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().Check.value].value = true;
-                      this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().WorkRequest.value].value = true;
-                      this.businessReportFields[2].data['status_' + this.getBusinessReportStatus().WorkReport.value].value = true;
-                      break;
-                    case this.getBusinessReportStatus().Complete.value:
-                      this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Request.value].value = true;
-                      this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().Check.value].value = true;
-                      this.businessReportFields[1].data['status_' + this.getBusinessReportStatus().WorkRequest.value].value = true;
-                      this.businessReportFields[2].data['status_' + this.getBusinessReportStatus().WorkReport.value].value = true;
-                      this.businessReportFields[2].data['status_' + this.getBusinessReportStatus().Complete.value].value = true;
-                      break;
-                  }
-                  break;
-                default: // 上記以外
-                  this.businessReportFields[0].data['business_report_type'].value = report.businessReportDefinitionId;
-
-                  switch(report.status) {
-                    case this.getBusinessReportStatus().WorkReport.value:
-                      this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().WorkReport.value].value = true;
-                      break;
-                    case this.getBusinessReportStatus().Complete.value:
-                      this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().WorkReport.value].value = true;
-                      this.businessReportFields[0].data['status_' + this.getBusinessReportStatus().Complete.value].value = true;
-                      break;
-                  }
-                  break;
-              }
+      // ↑↑ 過去データ表示のための処理.
 
 
-              for (const phase in this.businessReportFieldDefinitions) {
-                const definitions = this.businessReportFieldDefinitions[phase].definitions;
-                definitions.forEach((definition) => {
-                  definition.columns.forEach((col) => {
-                    const filters = fields.filter((field) => field.businessReportFieldDefinitionId == col.id);
-                    filters.forEach((filter) => { // 1件しか該当しないが0件の分岐処理が煩わしいためforEachで記載
-                      switch(col.type) {
-                        case 1:
-                          this.businessReportFields[phase].data[col.id].id = filter.id; // ID設定
-                          this.businessReportFields[phase].data[col.id].value = filter.textValue;
-                          break;
-                        case 2:
-                          const dateTime = new Date(filter.dateValue);
-                          this.businessReportFields[phase].data[col.id].id = filter.id;
-                          this.businessReportFields[phase].data[col.id].value = filter.dateValue;
-                          this.businessReportFields[phase].data[col.id].hours = dateTime.getHours();
-                          this.businessReportFields[phase].data[col.id].minutes = dateTime.getMinutes();
-                          break;
-                        case 3:
-                          this.businessReportFields[phase].data[col.id].id = filter.id;
-                          this.businessReportFields[phase].data[col.id].value = filter.numberValue;
-                          break;
-                        case 4:
-                          this.businessReportFields[phase].data[col.id].id = filter.id;
-                          this.businessReportFields[phase].data[col.id].value = filter.selectOptionDefinitionId;
-                          break;
-                        case 5:
-                          this.businessReportFields[phase].data[col.id].id = filter.id;
-                          this.businessReportFields[phase].data[col.id].value = filter.memberId;
-                          break;
-                        case 6:
-                          this.businessReportFields[phase].data[col.id].id = filter.id;
-                          this.businessReportFields[phase].data[col.id].value = filter.textValue;
-                          break;
-                        case 7:
-                          let tempImageValues = {
-                            'id': filter.id,
-                            'businessReportFieldDefinitionId': col.id,
-                            'type': col.type,
-                            'value': filter.textValue,
-                            'captionValue': filter.captionValue,
-                            'commonFlg': col.commonFlg
-                          }
-                          this.images.push(tempImageValues);
-                          this.businessReportFields[phase].data[col.id].id = filter.id;
-                          this.businessReportFields[phase].data[col.id].value = 'dummy';
-                          break;
-                        case 9:
-                          this.businessReportFields[phase].data[col.id].id = filter.id;
-                          var floors = filter.businessReportFieldFloors;
-                          this.businessReportFields[phase].data[col.id].value = (floors && 0 < floors.length) ? floors[0].floorId : null;
-                          break;
-                        case 13:
-                          this.businessReportFields[phase].data[col.id].id = filter.id;
-                          this.businessReportFields[phase].data[col.id].selected.push(filter.numberValue);
-                          break;
-                        default:
-                          break;
-                      }
-                    });
-                  });
-                });
-              }
-            }
-          });
-
-          resolve();
-        });
-      },
-
-
-      // 子コンポーネントから呼び出される処理
+      // ↓↓ 子コンポーネントから呼び出される処理.
 
       /**
        * アコーディオン開閉の制御情報.
+       *   param
+       *     isOpens アコーディオン開閉を制御するための情報リスト
        */
       updateOpenAccordions(isOpens) {
         this.isOpens = isOpens;
@@ -1172,53 +1230,110 @@
 
       /**
        * 各フェーズで表示する項目のデータ情報の更新.
+       *   param
+       *     index 表示欄の何段目かを表す値(フェーズ)
+       *     fields 業務報告書項目リスト(データ)
        */
       updateBusinessReportFieldsPerPhase(index, fields) {
         this.businessReportFields[index].data = fields;
       },
 
+      // ↑↑ 子コンポーネントから呼び出される処理.
+
+
+      // ↓↓ その他.
+
+      /**
+       * テキストエリアで改行した場合の高さ自動調整.
+       */
+      flexTextarea(el) {
+        const dummy = el.querySelector('.flex_textarea_dummy');
+        el.querySelector('.flex_textarea_textarea').addEventListener('input', e => {
+          dummy.textContent = e.target.value + '\u200b';
+        });
+      },
+
+      /**
+       * リストからIDを元に名称を取得する.
+       */
+      getNameByValue(id, list) {
+        var obj = list?.find(obj => obj.id === id);
+        return (id && obj != undefined) ? obj.label : '';
+      },
+
+      /**
+       * ビル名.
+       */
+      setBuildingName(id, list) {
+        this.childParam.buildingId = id;
+        this.childParam.buildingName = this.getNameByValue(id, list);
+      },
+
+      // ↑↑ その他.
+
     },
 
     created() {
-      //console.log('BusinessReportView - created');
+      // console.log('BusinessReportView - created');
 
-      const promise1 = this.getBusinessReportFieldDefinition();
-      promise1.then(() => {
+      if (!this.isAddView) {
+        // 編集・詳細画面の場合
 
-        this.getPastData();
+        const promise1 = this.getBusinessReportFields();
+        const promise2 = this.getBuildings();
 
-        if (!this.isAddView) {
-          // 編集・詳細画面の場合
+        Promise.all([promise1, promise2]).then((results) => {
 
-          const promise2 = this.getBusinessReportFields();
-          promise2.then(() => {
+          const report = results[0];
+          const buildings = results[1];
 
-            setTimeout(() => {
-              // プレビューON/OFFと画像の設定
-              const businessReportImageView = this.$refs.businessReportPhaseView[0].$parent.$parent.$refs.businessReportImageView;
-              businessReportImageView.$nextTick(() => { // DOM更新後の処理
-                businessReportImageView.list.forEach((obj, index) => {
-                  businessReportImageView.isPreviews[index] = true;
-                  businessReportImageView.imageSources[index] = '';
-                  if (obj.value) {
-                    businessReportImageView.setImages(index, obj.value);
-                  }
+          // ビルID
+          // データ登録されているビルIDを設定することで、契約会社管理者／それ以外の場合で条件分岐をなくす
+          this.setBuildingName(report?.buildingId, buildings);
+
+          const promise3 = this.getBusinessReportFieldDefinition();
+          promise3.then(() => {
+
+            this.getPastData();
+
+            const promise4 = this.formatForDisplay(report);
+            promise4.then(() => {
+
+              setTimeout(() => {
+                // プレビューON/OFFと画像の設定
+                const businessReportImageView = this.$refs.businessReportPhaseView[0].$parent.$parent.$refs.businessReportImageView;
+                businessReportImageView.$nextTick(() => { // DOM更新後の処理
+                  businessReportImageView.list.forEach((obj, index) => {
+                    businessReportImageView.isPreviews[index] = true;
+                    businessReportImageView.imageSources[index] = '';
+                    if (obj.value) {
+                      businessReportImageView.setImages(index, obj.value);
+                    }
+                  });
                 });
-              });
 
-              // アコーディンを開いた状態にする
-              this.$nextTick(() => { // DOM更新後の処理
-                this.$refs.businessReportPhaseView.forEach((view) => {
-                  view.handleToggle();
+                // アコーディンを開いた状態にする
+                this.$nextTick(() => { // DOM更新後の処理
+                  this.$refs.businessReportPhaseView.forEach((view) => {
+                    view.handleToggle();
+                  });
                 });
-              });
+                this.$emit('updateBusinessReportFields', this.businessReportFields);
+                this.childParam.loading = false;
+              }, 1000);
+            });
 
-              this.childParam.loading = false;
-            }, 1000);
           });
+        });
 
-        } else {
-          // 登録画面の場合
+      } else {
+        // 登録画面の場合
+        // ビルID(buildingId)は登録画面から送られてくるためここで設定
+        this.childParam.buildingId = this.buildingId;
+
+        const promise3 = this.getBusinessReportFieldDefinition();
+        promise3.then(() => {
+          this.getPastData();
 
           setTimeout(() => {
             // プレビューON/OFFと画像の初期設定
@@ -1233,12 +1348,13 @@
 
             this.childParam.loading = false;
           }, 1000);
-        }
-      });
+        });
+      }
+
     },
 
     mounted() {
-      //console.log('BusinessReportView - mounted');
+      // console.log('BusinessReportView - mounted');
 
       // 親コンポーネントへ情報を渡す
       this.$emit('updateChildParam', this.childParam);
@@ -1248,7 +1364,7 @@
     },
 
     updated() {
-      //console.log('BusinessReportView - updated');
+      // console.log('BusinessReportView - updated');
 
       if (this.isEdit) {
         document.querySelectorAll('.flex_textarea').forEach(this.flexTextarea);

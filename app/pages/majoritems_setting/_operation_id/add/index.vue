@@ -37,7 +37,7 @@
                   <div class="form_box_group_title">
                     <label class="control-label">ビル</label>
                   </div>
-                  
+
                   <div class="form_box_group_field">
                     <select class="form-control" v-model="targetBuilding" @change="updateSelect">
                       <option v-bind:value="buil.value" v-for="buil of this.buildingList">{{buil.name}}</option>
@@ -65,7 +65,7 @@
                     <button type="button" class="btn btn_border btn_white btn_shadow select_button width_80 font_12" @click="onOpenAutoSetting(targetCnt, reportObjectCnt)">詳細<span class="fa pull-right" v-bind:class="isDown[targetCnt][reportObjectCnt]?'fa-chevron-up':'fa-chevron-down'" style="margin-top: 2px;"></span></button>
                     <span class="item-text margin_left_5 font_12 color_red" v-if="!isSetting[targetCnt][reportObjectCnt]">未設定</span>
                     <span class="item-text margin_left_5 font_12 color_green" v-if="isSetting[targetCnt][reportObjectCnt]">設定中</span>
-                    
+
                     <!-- <div v-bind:class="{auto_config_hide: !isDown[targetCnt][reportObjectCnt]}"> -->
                     <div v-if="isDown[targetCnt][reportObjectCnt]">
                       <div class="margin_top_10">
@@ -116,7 +116,7 @@
                       </div>
                     <!-- <div class="auto_config"> -->
                     </div>
-                  </div>  
+                  </div>
                 </div>
               </div>
               <!-- /.box-body -->
@@ -151,7 +151,7 @@
   import ModalAlertView from '~/components/ModalAlertView'
   import Loading from 'vue-loading-overlay';
   import 'vue-loading-overlay/dist/vue-loading.css';
-  
+
   export default {
     data() {
       return {
@@ -334,7 +334,7 @@
 
           var reportList = JSON.parse(localStorage.getItem('report_list'));
           var report = reportList.find(function(report) {
-            return (report.id == that.$route.params.operation_id) 
+            return (report.id == that.$route.params.operation_id)
           });
           this.setMajorItems(majorItems, report);
         });
@@ -350,7 +350,7 @@
           return;
         }
         this.getFloorsInfo();
-        this.onReadMajorItemsFlag = true;  
+        this.onReadMajorItemsFlag = true;
       },
       getRequestData() {
 

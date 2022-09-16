@@ -75,7 +75,7 @@
                       </div>
                     </template>
 
-                    <!-- わかりやすいように業務報告書種別だけ分けて記載(tyep=0は業務報告書種別、ステータス) -->
+                    <!-- わかりやすいように分けて記載(tyep=0は業務報告書種別、ステータス) -->
                     <template v-if="(form.type == 0)">
                       <label class="col-sm-2 control-label">{{ form.name }}</label>
                       <div class="col-sm-10">
@@ -145,6 +145,8 @@
       return {
         fullpage: true,
         isRemoveAdd: false,
+        isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
+        buildingsList: [],
         error:'',
         //watch: {
         //  item: {
@@ -214,17 +216,8 @@
 
     methods: {
 
-      // 検索条件項目に関する処理
+      // ↓↓ 入力時の検索条件項目に関する処理
 
-      /**
-       * 日付指定の場合の値を保持
-       */
-      //setDay(day) {
-      //  const res = this.watch.item.searchDate.getDate() + day;
-      //  const tmp = new Date(this.watch.item.searchDate);
-      //  tmp.setDate(res);
-      //  this.$set(this.watch.item, "searchDate", tmp);
-      //},
       /**
        * 日付範囲指定の場合の値を保持
        */
@@ -258,7 +251,6 @@
       inputSearch(value, fieldIndex, type, id) {
         this.input['input' + fieldIndex] = { fieldIndex: fieldIndex, inputType: type, value: value , id: id};
       },
-
       /**
        * 日付(範囲選択)のプルダウン項目
        */
@@ -283,22 +275,13 @@
         return conf;
       },
 
+      // ↑↑ 入力時の検索条件項目に関する処理
 
-      // 検索結果一覧に関する処理
 
-      onImgClick(tag) {
-        this.param.imgId = tag;
-        var images = document.getElementById("img_source_" + tag);
-        var imgSrc = images.src;
-        this.$refs.child.showImage(imgSrc);
-      },
-      readFn(item) {
-        return '/business_report/' + this.$route.params.operation_id + '/' + this.$route.params.report_group_id + '/details/' + item.id;
-      },
-
+      // ↓↓ 検索に関する処理
 
       /**
-       * 初期処理
+       * 初期処理.
        */
       init() {
 
@@ -309,34 +292,49 @@
           const addKey = 'Equipment:BusinessReport:create';
           this.isRemoveAdd = !this.checkMenuPermission(addKey);
 
-          const promise1 = this.getBusinessReportFieldDefinition();
-          promise1.then(() => {
+          const promise1 = this.getBuildings();
+          promise1.then((buildings) => {
 
-            //console.log('end getBusinessReportFieldDefinition');
+            this.buildingsList = buildings;
 
-            this.setSearchSelectOptions();
+            const promise2 = this.getBusinessReportFieldDefinition();
+            promise2.then(() => {
 
-            this.error = '';
-            this.$nextTick(() => {
-              // DOM更新後の処理
+              //console.log('end getBusinessReportFieldDefinition');
 
-              //if (document.forms.searchForm.searchRadios1 != undefined) {
-              //  this.watch.item.radioButtonState = 'option1'
-              //  document.forms.searchForm.searchRadios1.checked = true;
-              //}
+              this.setSearchSelectOptions();
 
-              // 検索条件設定
-              this.initSearchItem();
-              // 検索処理
-              this.search1();
+              this.error = '';
+              this.$nextTick(() => {
+                // DOM更新後の処理
 
+                // 検索条件設定
+                this.initSearchItem();
+                // 検索処理
+                this.search1();
+
+              });
             });
           });
         });
       },
 
-
-      // 画面表示時に関する処理
+      /**
+       *  ビル情報の取得(契約会社管理者モード)
+       */
+      getBuildings() {
+        return new Promise((resolve) => {
+          const list = [];
+          var building_api = '/buildings';
+          var where = {"and":[{"companyId": parseInt(localStorage.getItem('company_id'))}]};
+          this.onSearch(building_api, null, where, (res) => {
+            res.forEach((obj) => {
+              list.push({ label: obj.name, id: obj.id });
+            });
+            resolve(list);
+          });
+        });
+      },
 
       /**
        * 以下データを取得し表示用に整形.
@@ -350,8 +348,8 @@
           //console.log('start getBusinessReportFieldDefinition');
 
           var api_url = '/business-report-group-definitions/business-report-field-definitions';
-          var query = `?companyId=${parseInt(localStorage.getItem('company_id'))}&buildingId=${parseInt(localStorage.getItem('buildings_id'))}&businessReportGroupDefinitionId=${this.$route.params.report_group_id}`
-
+          // var query = `?companyId=${parseInt(localStorage.getItem('company_id'))}&buildingId=${parseInt(localStorage.getItem('buildings_id'))}&businessReportGroupDefinitionId=${this.$route.params.report_group_id}`
+          var query = this.isHeadquartersMode ? `?companyId=${parseInt(localStorage.getItem('company_id'))}&businessReportGroupDefinitionId=${this.$route.params.report_group_id}` : `?companyId=${parseInt(localStorage.getItem('company_id'))}&buildingId=${parseInt(localStorage.getItem('buildings_id'))}&businessReportGroupDefinitionId=${this.$route.params.report_group_id}`;
           this.onSearch(api_url + query, null, null, res => {
 
             // タイトル
@@ -367,11 +365,22 @@
 
             Promise.all([promise1, promise2, promise3]).then((lists) => {
 
-              const businessReportDefinitions = lists[0];
+              const businessReportDefinitions = lists[0].filter((item, index, self) => {
+                  const nameList = self.map(item => item['label']);
+                  if (nameList.indexOf(item.label) === index) {
+                    return item;
+                  }
+                }
+              );
               const members = lists[1];
               const floors = lists[2];
 
-              const fieldDefinitions = res.businessReportFieldDefinitions;
+              const fieldDefinitions = res.businessReportFieldDefinitions.filter((element, index, self) =>
+                self.findIndex((e) => {
+                  e.businessReportDefinitionId === element.businessReportDefinitionId
+                }) === index || element.businessReportDefinitionId === null
+              );
+
               //console.dir(fieldDefinitions);
 
               if (0 < fieldDefinitions.length) {
@@ -429,8 +438,13 @@
         //console.log('start getMembers');
         return new Promise((resolve) => {
           const list = [];
-          var member_api = '/buildings/' + localStorage.getItem('buildings_id') + '/members';
+          // var member_api = '/buildings/' + localStorage.getItem('buildings_id') + '/members';
+          var member_api = '/members';
           var where = { 'and': [{ 'operationTypeId': operationId }] };
+          if (this.isHeadquartersMode) {
+            member_api = '/members'
+            where.and.push({'compnayId': localStorage.getItem('company_id')})
+          }
           this.onSearch(member_api, null, where, (res) => {
             res.forEach((obj) => {
               list.push({ label: obj.name, id: obj.id });
@@ -447,14 +461,18 @@
         //console.log('start getFloors');
         return new Promise((resolve) => {
           const list = [];
-          var floor_api = '/buildings/' + localStorage.getItem('buildings_id');
-          this.onSearch(floor_api, null, null, (res) => {
-            const floors = this.displayFloorFormat(res.floors, null, false);
-            floors.forEach((obj) => {
-              list.push({ label: obj.name + 'F', id: obj.id });
-            });
+          if (this.isHeadquartersMode) {
             resolve(list);
-          });
+          } else {
+            var floor_api = '/buildings/' + localStorage.getItem('buildings_id');
+            this.onSearch(floor_api, null, null, (res) => {
+              const floors = this.displayFloorFormat(res.floors, null, false);
+              floors.forEach((obj) => {
+                list.push({ label: obj.name + 'F', id: obj.id });
+              });
+              resolve(list);
+            });
+          }
         });
       },
 
@@ -488,7 +506,20 @@
             idx++;
           });
 
-        // 業務報告書種別は定義情報から取得できないため、プルダウン項目以外は固定値で設定
+        if (this.isHeadquartersMode) {
+          // ビル情報は定義情報から取得できないため、固定値で設定
+          this.search.forms.push({
+            'id': 'building',
+            'type': 0,
+            'reportExtractField': false,
+            'availableForSearch': true,
+            'name': 'ビル',
+            'fieldIndex': 102,
+            'selectOptionDefinitions': this.buildingsList,
+          });
+        }
+
+        // 業務報告書種別は定義情報から取得できないため、固定値で設定
         this.search.forms.push({
           'id': 'business_report_type',
           'type': 0,
@@ -499,7 +530,7 @@
           'selectOptionDefinitions': businessReportDefinitions,
         });
 
-        // ステータス(状態)は定義情報から取得できないため、プルダウン項目以外は固定値で設定
+        // ステータス(状態)は定義情報から取得できないため、固定値で設定
         //   プルダウン項目はmixin.js内で定義
         this.search.forms.push({
           'id': 'status',
@@ -547,6 +578,18 @@
       setListColumns(listColumns, businessReportDefinitions, members, floors) {
         //console.log('setListColumns');
         //console.dir(listColumns);
+
+        if (this.isHeadquartersMode) {
+           // ビルはここで設定
+          this.param.list.columns.push({
+            'id'                     : String('building'),
+            'types'                  : 0,
+            'column'                 : String('building'),
+            'type'                   : 0,
+            'name'                   : 'ビル',
+            'selectOptionDefinitions': this.buildingsList
+          });
+        }
 
         // 業務報告書種別はここで設定
         this.param.list.columns.push({
@@ -600,9 +643,6 @@
         //console.dir(this.param.list.columns);
       },
 
-
-      // 検索に関する処理
-
       /**
        * 検索条件の初期設定.
        */
@@ -610,17 +650,6 @@
 
         //console.log('setSearchItem');
 
-        //this.search.item.startShowAt.value = new Date();
-        //this.search.item.start_hh = Number(localStorage.getItem("business_start_time").slice(0, 2));
-        //this.search.item.start_mm = Number(localStorage.getItem("business_start_time").slice(3, 5));
-
-        //var endDate = moment(this.watch.item.searchDate, "YYYY-MM-DD").format("YYYY-MM-DD") + ' ' + localStorage.getItem("business_start_time");
-        //endDate = moment(endDate).add({ hours : 23, minutes : 59 });
-        //this.search.item.endShowAt.value = endDate.toDate();
-        //this.search.item.end_hh = endDate.get('hour');
-        //this.search.item.end_mm = endDate.get('minute');
-
-        //this.param.api = '/business-report/search-by-business-date';
         this.param.api = '/business-report';
         this.param.order = [{
           'direction': 'DESC',
@@ -646,16 +675,6 @@
           this.param.offset = (searchItem.offset != null) ? searchItem.offset : 0;
           this.param.order = (searchItem.order != undefined) ? searchItem.order : null;
 
-          //this.search.item.startShowAt = (searchItem.start != null) ? searchItem.start.date : { value: new Date() };
-          //this.search.item.start_hh = (searchItem.start != null) ? searchItem.start.hour : Number(localStorage.getItem("business_start_time").slice(0, 2));
-          //this.search.item.start_mm = (searchItem.start != null) ? searchItem.start.minute : Number(localStorage.getItem("business_start_time").slice(3, 5));
-
-          //var endDate = moment(this.watch.item.searchDate, "YYYY-MM-DD").format("YYYY-MM-DD") + ' ' + localStorage.getItem("business_start_time");
-          //endDate = moment(endDate).add({ hours : 23, minutes : 59 });
-          //this.search.item.endShowAt = (searchItem.end != null) ? searchItem.end.date : { value: endDate.toDate() };
-          //this.search.item.end_hh = (searchItem.end != null) ? searchItem.end.hour : endDate.get('hour');
-          //this.search.item.end_mm = (searchItem.end != null) ? searchItem.end.minute : endDate.get('minute');
-
           this.search.item.startShowAt = (searchItem.start != null) ? searchItem.start.date : {};
           this.search.item.start_hh = (searchItem.start != null) ? searchItem.start.hour : '-1';
           this.search.item.start_mm = (searchItem.start != null) ? searchItem.start.minute : '-1';
@@ -663,7 +682,6 @@
           this.search.item.end_hh = (searchItem.end != null) ? searchItem.end.hour : '-1';
           this.search.item.end_mm = (searchItem.end != null) ? searchItem.end.minute : '-1';
 
-          //this.watch.item.searchDate = (searchItem.date != null) ? new Date(searchItem.date) : new Date();
           this.input = (searchItem.data != null) ? searchItem.data : {};
         }
       },
@@ -688,15 +706,11 @@
         localStorage.setItem('search_item', JSON.stringify({
           offset: this.param.offset,
           order : this.param.order,
-          //date  : this.watch.item.searchDate,
           start : start,
           end   : end,
           data  : this.input
         }));
       },
-
-
-      // 検索処理
 
       /**
        * 検索1.
@@ -704,7 +718,6 @@
       search1(where) {
 
         //console.log('search1');
-
         //console.log('search_field: ' + this.search.item.search_field);
 
         var searchConditions = this.setOnSearchConditions();
@@ -775,7 +788,7 @@
 
         var conditions = this.setInnerConditions();
         var results = {
-          'buildingId' : localStorage.getItem('buildings_id'),
+          // 'buildingId' : localStorage.getItem('buildings_id'),
           'businessReportGroupDefinitionId': this.$route.params.report_group_id,
           'conditions' : conditions,
         };
@@ -790,10 +803,11 @@
           results['status'] = Number(this.input['input101'].value);
         }
 
-        //if (!this.isRange4SearchDate()) {
-        //  // 日付指定の場合の追加条件
-        //  results['businessDate'] = moment(this.watch.item.searchDate, "YYYY-MM-DD").format("YYYY-MM-DD");
-        //}
+        if (!this.isHeadquartersMode) {
+          results['buildingId'] = localStorage.getItem('buildings_id')
+        } else if (Object.keys(this.input).indexOf('input102') !== -1 && this.input['input102'].value != '') {
+          results['buildingIds'] = [ Number(this.input['input102'].value) ];
+        }
 
         return results;
       },
@@ -824,9 +838,13 @@
                 inputType = 3;
                 break;
               case 4: // 4セレクトボックス
-              case 5: // 5セレクトボックス(メンバー)
                 innerCondition = [{ 'searchType': 1, 'selectOptionDefinitionId': parseInt(this.input[keys[i]].value) }];
                 inputType = 4;
+                break;
+              case 5: // 5セレクトボックス(メンバー)
+                innerCondition = [{ 'searchType': 1, 'memberId': parseInt(this.input[keys[i]].value) }];
+                inputType = 5;
+                break;
                 break;
               case 0: // type=0の業務報告書種別はskip
                 continue;
@@ -848,62 +866,34 @@
        * ラジオボタンで選択する日付の検索条件.
        */
       getConditionTime() {
+
         var conditions = [];
+        var start = this.getShowAtDateTime(this.search.item.startShowAt.value, this.search.item.start_hh, this.search.item.start_mm, 'start');
+        var end   = this.getShowAtDateTime(this.search.item.endShowAt.value, this.search.item.end_hh, this.search.item.end_mm, 'end');
 
-        //if (!this.isRange4SearchDate()) {
+        //console.dir(this.search.item);
+        //console.log('start: ' + start);
+        //console.log('end: ' + end);
 
-          //var startTime = moment(this.watch.item.searchDate, "YYYY-MM-DD").format("YYYY-MM-DD") + ' ' + localStorage.getItem("business_start_time");
-          //startTime = moment(startTime);
-          //var endTime = moment(this.watch.item.searchDate, "YYYY-MM-DD").format("YYYY-MM-DD") + ' ' + localStorage.getItem("business_start_time");
-          //endTime = moment(endTime).add(23, 'hours').add(59, 'minutes').add(59, 'seconds');
+        conditions.push(
+          {
+            'businessReportFieldDefinitionId': this.search.item.search_field,
+            'inputType': 2,
+            'innerConditions':[{
+              'searchType': 4,
+              'dateValue': this.getDateRemoveMinutes(this.df_utc(start))
+            }]
+          },
+          {
+            'businessReportFieldDefinitionId': this.search.item.search_field,
+            'inputType': 2,
+            'innerConditions':[{
+              'searchType': 3,
+              'dateValue': this.df_utc(end)
+            }]
+          }
+        );
 
-          //conditions.push(
-          //  {
-          //    'businessReportFieldDefinitionId': this.search.item.search_field,
-          //    'inputType': 2,
-          //    'innerConditions':[{
-          //      'searchType': 4, // GT(<)
-          //      'dateValue': this.getDateRemoveMinutes(startTime)
-          //    }]
-          //  },
-          //  {
-          //    'businessReportFieldDefinitionId': this.search.item.search_field,
-          //    'inputType': 2,
-          //    'innerConditions':[{
-          //      'searchType': 3, // LT(>)
-          //      'dateValue': this.getDateRemoveMinutes(endTime)
-          //    }]
-          //  }
-          //);
-
-        //} else {
-
-          var start = this.getShowAtDateTime(this.search.item.startShowAt.value, this.search.item.start_hh, this.search.item.start_mm, 'start');
-          var end   = this.getShowAtDateTime(this.search.item.endShowAt.value, this.search.item.end_hh, this.search.item.end_mm, 'end');
-
-          //console.dir(this.search.item);
-          //console.log('start: ' + start);
-          //console.log('end: ' + end);
-
-          conditions.push(
-            {
-              'businessReportFieldDefinitionId': this.search.item.search_field,
-              'inputType': 2,
-              'innerConditions':[{
-                'searchType': 4,
-                'dateValue': this.getDateRemoveMinutes(this.df_utc(start))
-              }]
-            },
-            {
-              'businessReportFieldDefinitionId': this.search.item.search_field,
-              'inputType': 2,
-              'innerConditions':[{
-                'searchType': 3,
-                'dateValue': this.df_utc(end)
-              }]
-            }
-          );
-        //}
         return conditions;
       },
 
@@ -916,6 +906,7 @@
         businessReports?.forEach((businessReport) => {
           var item = {
             'id': businessReport.id,
+            'building': this.buildingsList.find(list => list.id === businessReport.buildingId)?.label,
             'business_report_type': businessReportType?.selectOptionDefinitions?.find((v) => v.id == businessReport.businessReportDefinitionId)?.label,
             'status': this.getBusinessReportStatusList().find((v) => v.id == businessReport.status)?.label,
           };
@@ -956,15 +947,6 @@
       },
 
       /**
-       * 範囲検索（指定した日付の範囲）かどうか
-       *   option1 の場合、false
-       *   option2 の場合、true
-       */
-      //isRange4SearchDate() {
-      //  return this.watch.item.radioButtonState == "option2"
-      //},
-
-      /** 
        * 日付変換(YYYY/MM/DD HH:MM)
        */
       getShowAtDateTime(showAt, hh, mm, to) {
@@ -985,7 +967,7 @@
         if(showAt){
           showAt = (showAt instanceof Date) ? showAt : new Date(showAt);
           return showAt.getFullYear() + "/" +  parseInt(showAt.getMonth() + 1) + "/"+ showAt.getDate();
-        } 
+        }
         return "";
       },
       /**
@@ -993,9 +975,26 @@
        */
       convertTime(time) {
         if (time == "-1") return "00"
-        if (String(time).length == 1) return "0" + time; 
+        if (String(time).length == 1) return "0" + time;
         return time;
       },
+
+      // ↑↑ 検索に関する処理
+
+
+      // ↓↓ 検索結果一覧に関する処理
+
+      onImgClick(tag) {
+        this.param.imgId = tag;
+        var images = document.getElementById("img_source_" + tag);
+        var imgSrc = images.src;
+        this.$refs.child.showImage(imgSrc);
+      },
+      readFn(item) {
+        return '/business_report/' + this.$route.params.operation_id + '/' + this.$route.params.report_group_id + '/details/' + item.id;
+      }
+
+      // ↑↑ 検索結果一覧に関する処理
 
     },
 
@@ -1007,7 +1006,7 @@
       //console.log('IndexView - created');
       this.init();
     },
- 
+
     mounted() {
       //console.log('IndexView - mounted');
     },

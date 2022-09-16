@@ -80,7 +80,7 @@
                 </div>
               </div>
 
-              <div class="form-group form_box_group" v-if="param.isApply">
+              <div class="form-group form_box_group">
                 <div class="form_box_group_title">
                   <label class="control-label">ステータス</label>
                 </div>
@@ -195,7 +195,7 @@
                 </div>
               </div>
 
-              <div class="box-body padding_0 margin_bottom_10" v-if="param.isApply">
+              <div class="box-body padding_0 margin_bottom_10">
                 <div class="box-header with-border margin_bottom_10">
                   <h2 class="box-title font_18">申請コメント</h2>※ 報告書非表示
                 </div>
@@ -210,7 +210,7 @@
                 </div>
               </div>
               <!-- 承認履歴動的 -->
-              <div v-if="item.status && param.isApply">
+              <div v-if="item.status">
                 <div class="box-header with-border margin_bottom_20">
                   <h2 class="box-title font_18">承認申請履歴</h2>
                 </div>
@@ -310,10 +310,9 @@
             <div class="box-footer form_button_flex flex_right border_top">
               <button type="button" class="btn btn-danger global_btn form_button_flex_item margin_right_auto" @click="onDeleteFunc()">削除</button>
               <button type="button" class="btn btn-default global_btn form_button_flex_item" @click="onTransitionButton('/report/' + $route.params.operation_category + '/details/' + item.id)">キャンセル</button>
-              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onUpdateButton('temporary')" v-if="param.isApply">仮保存</button>
-              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onUpdateButton('main')" v-if="item.status && param.isApply">保存して再申請</button>
-              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onUpdateButton('main')" v-if="!item.status && param.isApply">保存して申請</button>
-              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onUpdateButton('main')" v-if="!param.isApply">保存</button>
+              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onUpdateButton('temporary')">仮保存</button>
+              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onUpdateButton('main')" v-if="item.status">保存して再申請</button>
+              <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onUpdateButton('main')" v-if="!item.status">保存して申請</button>
             </div>
             <!-- /.box-footer -->
           </form>
@@ -399,7 +398,6 @@ export default {
         title: '',
         id: '',
         member: '',
-        isApply: this.toBoolean(localStorage.getItem('is_apply')), // 申請フラグ(仮) 
         categorylist:[],
         list: [],
         columns: [

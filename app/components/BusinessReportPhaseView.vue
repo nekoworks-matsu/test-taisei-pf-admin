@@ -155,12 +155,12 @@
   export default {
     name: 'BusinessReportPhaseView',
     props: {
-      title: String,           // アコーディオンの名称
-      index: Number,           // どのPhaseの情報かを識別するための情報.
-      isOpens: Array,          // アコーディオン開閉を制御するための情報. [false, false, false] のように保持.
-      fieldDefinitions: Array, // フィールド定義.
-      fields: Object,          // フィールドデータ.
-      isEdit: Boolean,         // 登録・編集するかどうか.
+      title: { type: String, required: true },           // アコーディオンの名称
+      index: { type: Number, required: true },           // どのPhaseの情報かを識別するための情報.
+      isOpens: { type: Array, required: true },          // アコーディオン開閉を制御するための情報. [false, false, false] のように保持.
+      fieldDefinitions: { type: Array, required: true }, // フィールド定義.
+      fields: { type: Object, required: true },          // フィールドデータ.
+      isEdit: { type: Boolean, required: true },         // 登録・編集するかどうか.
     },
     data() {
       return {

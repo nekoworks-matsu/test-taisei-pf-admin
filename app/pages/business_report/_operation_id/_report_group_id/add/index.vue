@@ -25,63 +25,74 @@
 
     <section class="content">
       <div class="box">
+
         <div class="box-body no-paddin">
-
-          <ul class="tab">
-            <li @click="changeTab($event)" class="tab__item on"><span class="tab__link on" data-tab-body="1">{{ fixedTitle }}情報</span></li>
-            <li @click="changeTab($event)" class="tab__item"><span class="tab__link" data-tab-body="2">画像</span></li>
-            <li @click="changeTab($event)" class="tab__item"><span class="tab__link" data-tab-body="3">過去データ</span></li>
-            <li @click="changeTab($event)" class="tab__item"><span class="tab__link" data-tab-body="4">PDF</span></li>
-            <li @click="changeTab($event)" class="tab__item"><span class="tab__link" data-tab-body="5">動画</span></li>
-          </ul>
-
-          <div class="tab-body">
-            <div class="tab-body__item tab-body__item--1 on">
-              <form class="form-horizontal" name="report_form">
-                <div class="box-body">
-                  <business-report-view ref='businessReportView'
-                    @updateChildParam="updateChildParam($event, childParam)"
-                    @updateParam="updateParam($event, param)"
-                    @updateImageValues="updateImageValues($event, images)"
-                    @updateBusinessReportFieldDefinitions="updateBusinessReportFieldDefinitions($event, businessReportFieldDefinitions)"
-                    @updateBusinessReportFields="updateBusinessReportFields($event, businessReportFields)"
-                    :isAddView="true"
-                    :isEdit="true"
-                    :businessReportFields="businessReportFields">
-                  </business-report-view>
-                </div>
-
-                <div v-if="error" class="callout callout-danger err-info"><p>{{error}}</p></div>
-
-                <div class="box-footer form_button_flex flex_right border_top">
-                  <button type="button" class="btn btn-default global_btn form_button_flex_item" onclick="window.history.back()" v-bind:disabled="this.isButtonDisabled" >キャンセル</button>
-                  <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onAddButton" v-bind:disabled="this.isButtonDisabled">登 録</button>
-                </div>
-              </form>
-            </div>
-
-            <div class="tab-body__item tab-body__item--2">
-              <business-report-image-view ref='businessReportImageView'
-                @updateImageValues="updateImageValues($event, images)"
-                :isAddView="true"
-                :isEdit="true"
-                :list="images">
-              </business-report-image-view>
-            </div>
-
-            <div class="tab-body__item tab-body__item--3">
-              <list-view-2 @onImgClick="onImgClick" :list="param.items" :param="param.list" :limit="param.limit" :offset="param.offset"></list-view-2>
-            </div>
-
-            <div class="tab-body__item tab-body__item--4">
-              
-            </div>
-
-            <div class="tab-body__item tab-body__item--5">
-              
+          <div class="form-group form_box_group display_flex" v-if="isHeadquartersMode">
+            <label class="control-label col-sm-2 padding_left_40">ビル</label>
+            <div class="col-sm-10 width_one_third">
+              <select class="form-control" v-model="targetBuilding">
+                <option v-bind:value="buil.id" v-for="buil of this.buildingList" :key="buil.id">{{ buil.label }}</option>
+              </select>
             </div>
           </div>
+          <template v-if="!isHeadquartersMode || this.targetBuilding !== null">
+            <ul class="tab">
+              <li @click="changeTab($event)" class="tab__item on"><span class="tab__link on" data-tab-body="1">{{ fixedTitle }}情報</span></li>
+              <li @click="changeTab($event)" class="tab__item"><span class="tab__link" data-tab-body="2">画像</span></li>
+              <li @click="changeTab($event)" class="tab__item"><span class="tab__link" data-tab-body="3">過去データ</span></li>
+              <li @click="changeTab($event)" class="tab__item"><span class="tab__link" data-tab-body="4">PDF</span></li>
+              <li @click="changeTab($event)" class="tab__item"><span class="tab__link" data-tab-body="5">動画</span></li>
+            </ul>
 
+            <div class="tab-body">
+              <div class="tab-body__item tab-body__item--1 on">
+                <form class="form-horizontal" name="report_form">
+                  <div class="box-body">
+
+                    <business-report-view ref='businessReportView'
+                      @updateChildParam="updateChildParam($event, childParam)"
+                      @updateParam="updateParam($event, param)"
+                      @updateImageValues="updateImageValues($event, images)"
+                      @updateBusinessReportFieldDefinitions="updateBusinessReportFieldDefinitions($event, businessReportFieldDefinitions)"
+                      @updateBusinessReportFields="updateBusinessReportFields($event, businessReportFields)"
+                      :isAddView="true"
+                      :isEdit="true"
+                      :buildingId="targetBuilding"
+                      :businessReportFields="businessReportFields">
+                    </business-report-view>
+                  </div>
+
+                  <div v-if="error" class="callout callout-danger err-info"><p>{{error}}</p></div>
+
+                  <div class="box-footer form_button_flex flex_right border_top">
+                    <button type="button" class="btn btn-default global_btn form_button_flex_item" onclick="window.history.back()" v-bind:disabled="this.isButtonDisabled" >キャンセル</button>
+                    <button type="button" class="btn btn-warning global_btn form_button_flex_item" @click="onAddButton" v-bind:disabled="this.isButtonDisabled">登 録</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="tab-body__item tab-body__item--2">
+                <business-report-image-view ref='businessReportImageView'
+                  @updateImageValues="updateImageValues($event, images)"
+                  :isAddView="true"
+                  :isEdit="true"
+                  :list="images">
+                </business-report-image-view>
+              </div>
+
+              <div class="tab-body__item tab-body__item--3">
+                <list-view-2 @onImgClick="onImgClick" :list="param.items" :param="param.list" :limit="param.limit" :offset="param.offset"></list-view-2>
+              </div>
+
+              <div class="tab-body__item tab-body__item--4">
+
+              </div>
+
+              <div class="tab-body__item tab-body__item--5">
+
+              </div>
+            </div>
+          </template>
         </div>
         <!-- /.box-body -->
       </div>
@@ -111,11 +122,16 @@
         api: '/business-report/',
         fullpage: true,
         isButtonDisabled: false,
+        isHeadquartersMode: this.toBoolean(localStorage.getItem('is_headquarters_mode')),
+        buildingList: [],
+        targetBuilding: null,
         error: '',
         childParam: {
           loading: true,
           title: '',
           operation: '',
+          buildingId: null, // 登録画面では使用しない(合わせるために記載)
+          buildingName: '', // 登録画面では使用しない(合わせるために記載)
           columns: [], // POSTパラメータでエラー表示するために必要(子コンポーネントから取得)
         },
         param: {
@@ -187,6 +203,9 @@
         this.$refs.child.showImage(imgSrc);
       },
 
+
+      // ↓↓ タブ切り替えに関する処理
+
       /**
        * タブ切り替え処理.
        */
@@ -211,8 +230,10 @@
         document.getElementsByClassName('tab-body__item--' + e.target.dataset.tabBody)[0].classList.add('on');
       },
 
+      // ↑↑ タブ切り替えに関する処理
 
-      // 登録処理関連
+
+      // ↓↓ 登録処理関連
 
       /**
        * 登録ボタン押下時イベントハンドラ.
@@ -289,8 +310,8 @@
                 });
                 break;
               case 2:
-                const hours = (field.hours.length < 2) ? '0' + field.hours : field.hours;
-                const minutes = (field.minutes.length < 2) ? '0' + field.minutes : field.minutes;
+                const hours = (field.hours < 10) ? '0' + field.hours : field.hours;
+                const minutes = (field.minutes < 10) ? '0' + field.minutes : field.minutes;
                 console.dir(moment(field.value).format('YYYY-MM-DDT') + hours + ':' + minutes + ':00.000Z');
                 const date = this.df_utc(moment(field.value).format('YYYY-MM-DDT') + hours + ':' + minutes + ':00.000Z');
                 tempFields.push({
@@ -367,7 +388,7 @@
         }
 
         var results = {
-          'buildingId': parseInt(localStorage.getItem('buildings_id')),
+          'buildingId': this.targetBuilding,
           'businessReportGroupDefinitionId': parseInt(this.$route.params.report_group_id),
           'reportedAt': new Date().toISOString(),
           'reportedBy': Number(localStorage.getItem('member_id')),
@@ -385,8 +406,10 @@
         return results;
       },
 
+      // ↑↑ 登録処理関連
 
-      // 子コンポーネントから呼び出される処理
+
+      // ↓↓ 子コンポーネントから呼び出される処理
 
       /**
        * タイトル, パンくずリスト, カラム情報(filedsのみ), loading状態の更新.
@@ -423,35 +446,101 @@
         this.businessReportFields = businessReportFields;
       },
 
+      // ↑↑ 子コンポーネントから呼び出される処理
+
+
+      // ↓↓ 契約会社管理者用の処理
+
+      /**
+       * 選択可能なビル
+       * 
+       *   return Promise
+       */
+      getBuildings() {
+        return new Promise((resolve) => {
+          const list = [{ label: '対象者を選択してください', id: '' }];
+          var building_api = '/buildings';
+          var where = {"and":[{"companyId": parseInt(localStorage.getItem('company_id'))}]};
+          this.onSearch(building_api, null, where, (res) => {
+            res.forEach((obj) => {
+              list.push({ label: obj.name, id: obj.id });
+            });
+            resolve(list);
+          });
+        });
+      },
+
+      /**
+       * タイトル.
+       */
+      setTitle(name) {
+        this.$set(this.childParam, 'title', name);
+      },
+
+      /**
+       * パンくずリスト.
+       */
+      setBreadCrumbList(operationTypeId) {
+        var report_list = JSON.parse(localStorage.getItem('report_list'));
+        var find = report_list.find(val => val.operation_type_id == operationTypeId);
+        this.$set(this.childParam, 'operation', find.operation_name);
+      },
+
+      // ↑↑ 契約会社管理者用の処理
+
     },
 
     created() {
-      //console.log('AddView - created');
-      //console.log('this.businessReportFields');
-      //console.dir(this.businessReportFields);
+      console.log('AddView - created');
+      console.log('this.businessReportFields');
+      console.dir(this.businessReportFields);
 
       const key = 'Equipment:BusinessReport:create';
       this.checkDisplayPermission(key, () => {
-        // loading は子コンポーネントでの取得処理が完了後に更新される
+        if (this.isHeadquartersMode) {
+          // 契約会社管理者の場合
+
+          const promise1 = this.getBuildings();
+          promise1.then((buildings) => {
+
+            this.buildingList = buildings;
+
+            var api_url = '/business-report-group-definitions/business-report-field-definitions';
+            var query = `?companyId=${parseInt(localStorage.getItem('company_id'))}&businessReportGroupDefinitionId=${this.$route.params.report_group_id}`;
+            this.onSearch(api_url + query, null, null, res => {
+              // タイトル
+              this.setTitle(res.name);
+              // パンくずリスト
+              this.setBreadCrumbList(res.operationTypeId);
+              // loading
+              this.childParam.loading = false;
+            });
+          });
+        } else {
+          // 契約会社管理者以外の場合
+          // loading は子コンポーネントでの取得処理が完了後に更新される
+
+          this.targetBuilding = Number(localStorage.getItem('buildings_id'));
+        }
       });
     },
 
     mounted() {
-      //console.log('AddView - mounted');
-      //console.log('this.businessReportFields');
-      //console.dir(this.businessReportFields);
-      //console.log('this.childParam');
-      //console.dir(this.childParam);
-      //console.log('this.images');
-      //console.dir(this.images);
+      console.log('AddView - mounted');
+      console.log('this.businessReportFields');
+      console.dir(this.businessReportFields);
+      console.log('this.childParam');
+      console.dir(this.childParam);
+      console.log('this.images');
+      console.dir(this.images);
     },
 
     updated() {
-      //console.log('AddView - updated');
-      //console.log('this.businessReportFields');
-      //console.dir(this.businessReportFields);
-      //console.log('this.childParam');
-      //console.dir(this.childParam);
+      console.log('AddView - updated');
+      console.log('this.businessReportFields');
+      console.dir(this.businessReportFields);
+      console.log('this.childParam');
+      console.dir(this.childParam);
     },
   }
 

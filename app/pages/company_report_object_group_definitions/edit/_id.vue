@@ -114,7 +114,7 @@
       </div>
       <!-- /.box-group -->
       <template>
-        <modal-alert-view　ref="alert" :id="'modal_alert'" :param="alert" @onconfirm="deleteFunc"></modal-alert-view>
+        <modal-alert-view ref="alert" :id="'modal_alert'" :param="alert" @onconfirm="deleteFunc"></modal-alert-view>
       </template>
     </section>
     <!-- /.content -->
